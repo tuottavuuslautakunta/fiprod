@@ -1,14 +1,32 @@
 ## code to prepare `DATASET` dataset goes here
 
-library(rsdmx)
 
-dat_oecd_pdb_main <- readSDMX(
-  providerId = "OECD",
-  resource = "data",
-  flowRef = "DSD_PDB@DF_PDB",
-  key = list(c("FIN", "USA", "JPN", "GBR"), "A", "GVAHRS", c("_T", "BTE", "BTNXL", "C"), "XDC_H", "LR", "N", NULL, NULL)) |>
-  oecd_clean_data(vars = c(geo = "REF_AREA", nace = "ACTIVITY"))
+library(countrycode)
+library(OECD)
 
-usethis::use_data(oecd_pdb_main, overwrite = TRUE)
+geos_oecd <- c("EA20", countrycode(c("FI", "SE", "NO", "DK", "BE", "NL", "AT", "PT", "DE", "IT", "FR", "ES", "US", "JP"), "eurostat", "iso3c"))
+
+
+pdb_dataset <- "OECD.SDD.TPS,DSD_PDB@DF_PDB,"
+
+## Main data
+
+pdb_main_key <- oecd_make_filter(
+  list(geos_oecd, "A", c("GVAEMP", "GVAHRS", "GDP", "GVA"), c("_T"), NULL, NULL, "N", NULL, NULL))
+
+dat_oecd_pdb_main_0 <- get_dataset(
+  dataset = pdb_dataset, filter = pdb_main_key)
+
+dat_oecd_pdb_main <-
+  dat_oecd_pdb_main_0 |>
+  oecd_clean_data(drop_vars = c("UNIT_MULT", "OBS_STATUS"),
+                  vars = c(geo = "REF_AREA",
+                           "measure"        = "MEASURE",
+                           "unit_measure"   = "UNIT_MEASURE",
+                           "price_base"     = "PRICE_BASE",
+                           "conversion_type"= "CONVERSION_TYPE")) |>
+  mutate(geo = as_factor(countrycode(geo, "iso3c", "eurostat", nomatch = NULL)))
+
+save_dat(dat_oecd_pdb_main, overwrite = TRUE)
 
 

@@ -13,4 +13,34 @@ knitr:
 ```{r}
 #| label: setup
 # library(fiprod)
+
+devtools::load_all()
+
+library(tidyverse)
+library(ggcustom)
+library(pttdatahaku)
+
+set_gg(theme_fpb(), "fpb")
+
+dat_oecd_pdb_main <- load_dat("dat_oecd_pdb_main")
+
 ```
+
+
+```{r}
+
+dat_oecd_pdb_main |> 
+  filter_recode(
+    geo = c("FI", "SE", "US"),
+    measure = c("GVAHRS"),
+    price_base = c("L"),
+    conversion_type = "PPP"
+  ) |> 
+  # group_by(across(where(is.factor))) |> 
+  # mutate(values = rebase(values, time, 2005)) |> 
+  # ungroup() |> 
+  ggplot(aes(time, values, colour = geo)) +
+  geom_line()
+
+```
+

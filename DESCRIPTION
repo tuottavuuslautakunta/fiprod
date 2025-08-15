@@ -15,13 +15,18 @@ Suggests:
     quarto,
     rmarkdown,
     rsdmx,
+    countrycode,
+    tidyverse,
+    ggcustom,
     testthat (>= 3.0.0)
 VignetteBuilder: knitr, quarto
 Imports: 
     dplyr,
     forcats,
+    nanoparquet,
     pxwebtools (>= 0.1.5),
     tidyselect
 Remotes: 
     jhuovari/pxwebtools
+    jhuovari/ggcustom
 Config/testthat/edition: 3

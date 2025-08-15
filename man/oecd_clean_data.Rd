@@ -4,10 +4,10 @@
 \alias{oecd_clean_data}
 \title{Clean and reshape OECD SDMX data}
 \usage{
-oecd_clean_data(sdmx_obj, vars = c(), freq = "A")
+oecd_clean_data(df, drop_vars = NULL, vars = c(), freq = "A")
 }
 \arguments{
-\item{sdmx_obj}{A SDMX object containing OECD SDMX data.}
+\item{df}{A data.frame containing OECD SDMX data.}
 
 \item{vars}{A named character vector specifying variables to keep and rename,
 in the form \code{c(new_name = "old_name")}. The old names must exist in \code{df}.}

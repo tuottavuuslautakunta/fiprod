@@ -12,7 +12,7 @@ utils::globalVariables(c(
 #' from `obsValues` (or `obsValue`), and drops all other columns.
 #' It warns if any dropped factor variables have more than one level.
 #'
-#' @param sdmx_obj A SDMX object containing OECD SDMX data.
+#' @param df A data.frame containing OECD SDMX data.
 #' @param vars A named character vector specifying variables to keep and rename,
 #'   in the form \code{c(new_name = "old_name")}. The old names must exist in \code{df}.
 #' @param freq Data frequency: \code{"A"} for annual data, \code{"Q"} for quarterly data.
@@ -25,7 +25,7 @@ utils::globalVariables(c(
 #' cleaned <- oecd_clean_data(smdx_data, vars = vars, freq = "A")
 #' }
 #' @export
-oecd_clean_data <- function(sdmx_obj, vars = c(), freq = "A") {
+oecd_clean_data <- function(df, drop_vars = NULL, vars = c(), freq = "A") {
 
   # Validate 'vars' is named (or empty)
   if (length(vars) > 0) {
@@ -43,14 +43,16 @@ oecd_clean_data <- function(sdmx_obj, vars = c(), freq = "A") {
   )
 
   # Parse dates, convert character columns to factors and rename values column.
-  df2 <- sdmx_obj |>
-    as.data.frame() |>
+  df2 <- df |>
+    dplyr::select(-tidyselect::all_of(drop_vars)) |>
+    dplyr::rename(tidyselect::any_of(c(obsTime = "TIME_PERIOD"))) |>
     pxwebtools::parse_dates(date_format = c(obsTime = d_format)) |>
-    dplyr::mutate(dplyr::across(tidyselect::where(is.character), forcats::as_factor))|>
+    dplyr::rename(tidyselect::any_of(c(obsValue = "ObsValue"))) |>
     dplyr::mutate(
-      values = obsValue,
+      values = as.numeric(obsValue),
       .keep = "unused"
-    )
+    ) |>
+    dplyr::mutate(dplyr::across(tidyselect::where(is.character), forcats::as_factor))
 
   # Validate that old names in vars exist in the data
   old_names <- unname(vars)
@@ -90,3 +92,20 @@ oecd_clean_data <- function(sdmx_obj, vars = c(), freq = "A") {
   out
 }
 
+#' Create an OECD Filter String
+#'
+#' This function takes a list of filtering arguments and constructs a filter string for an OECD API call.
+#'
+#' @param x A list of strings representing different filter criteria for the OECD API.
+#'
+#' @return A single string with the filter criteria concatenated using '+' and '.' as separators.
+#'
+#' @export
+#'
+#' @examples
+#' make_oecd_filter(list("A", "sna_geo", "", "", "sna6a_transact", "", "sna_activity", "", "", "sna_measures", "", ""))
+oecd_make_filter <- function(x) {
+  x |>
+    purrr::map(~paste(.x, collapse = "+")) |>
+    paste(collapse = ".")
+}
