@@ -12,7 +12,7 @@ pdb_dataset <- "OECD.SDD.TPS,DSD_PDB@DF_PDB,"
 ## Main data
 
 pdb_main_key <- oecd_make_filter(
-  list(geos_oecd, "A", c("GVAEMP", "GVAHRS", "GDP", "GVA"), c("_T"), NULL, NULL, "N", NULL, NULL))
+  list(geos_oecd, "A", c("GVAEMP", "GVAHRS", "GDP", "GVA"), c("_T", "BTNXL"), NULL, NULL, "N", NULL, NULL))
 
 dat_oecd_pdb_main_0 <- get_dataset(
   dataset = pdb_dataset, filter = pdb_main_key)
@@ -22,6 +22,7 @@ dat_oecd_pdb_main <-
   oecd_clean_data(drop_vars = c("UNIT_MULT", "OBS_STATUS"),
                   vars = c(geo = "REF_AREA",
                            "measure"        = "MEASURE",
+                           "activity"       = "ACTIVITY",
                            "unit_measure"   = "UNIT_MEASURE",
                            "price_base"     = "PRICE_BASE",
                            "conversion_type"= "CONVERSION_TYPE")) |>
@@ -29,4 +30,5 @@ dat_oecd_pdb_main <-
 
 save_dat(dat_oecd_pdb_main, overwrite = TRUE)
 
+# check_factor_levels(dat_oecd_pdb_main, drop_vars = "geo") |> View()
 
