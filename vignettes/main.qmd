@@ -30,16 +30,19 @@ dat_oecd_pdb_main <- load_dat("dat_oecd_pdb_main")
 ```{r}
 
 dat_oecd_pdb_main |> 
+  filter(time >= "1995-01-01") |> 
   filter_recode(
-    geo = c("FI", "SE", "US"),
+    geo = c("FI", "SE", "US", "EA20"),
     measure = c("GVAHRS"),
-    price_base = c("L"),
+    activity = c("Koko talous" = "_T", "Yksityinen" = "BTNXL"),
+    price_base = c("LR"),        # 
     conversion_type = "PPP"
   ) |> 
   # group_by(across(where(is.factor))) |> 
   # mutate(values = rebase(values, time, 2005)) |> 
   # ungroup() |> 
   ggplot(aes(time, values, colour = geo)) +
+  facet_wrap(~ activity) +
   geom_line()
 
 ```
