@@ -4,8 +4,8 @@ library(tidyverse)
 library(countrycode)
 library(OECD)
 
-geos_oecd <- c("EA20", countrycode(c("FI", "SE", "NO", "DK", "BE", "NL", "AT", "PT", "DE", "IT", "FR", "ES", "US", "JP"), "eurostat", "iso3c"))
 
+geos_oecd <- c("EA20", countrycode(c("FI", "SE", "NO", "DK", "BE", "NL", "AT", "PT", "DE", "IT", "FR", "ES", "US", "JP"), "eurostat", "iso3c"))
 
 pdb_dataset <- "OECD.SDD.TPS,DSD_PDB@DF_PDB,"
 
@@ -33,6 +33,8 @@ save_dat(dat_oecd_pdb_main, overwrite = TRUE)
 # check_factor_levels(dat_oecd_pdb_main, drop_vars = "geo") |> View()
 
 ## Industry data
+
+
 
 pdb_ind_key <- oecd_make_filter(
   list(geos_oecd, "A", c("GVAEMP", "GVAHRS", "GVA"), NULL, NULL, NULL, "N", NULL, "_Z"))

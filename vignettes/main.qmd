@@ -25,6 +25,8 @@ set_gg(theme_fpb(), "fpb")
 
 dat_oecd_pdb_main <- load_dat("dat_oecd_pdb_main")
 
+dat_oecd_pdb_ind <- load_dat("dat_oecd_pdb_ind")
+
 geos <- c("FI", "SE", "US", "EA20", "DK", "DE")
 
 ```
