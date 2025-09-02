@@ -18,7 +18,8 @@ Suggests:
     countrycode,
     tidyverse,
     ggcustom,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    here (>= 1.0.1)
 VignetteBuilder: knitr, quarto
 Imports: 
     dplyr,

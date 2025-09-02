@@ -14,7 +14,8 @@ exh_eur_euro <-
 exh_eur_a <- get_eurostat("ert_bil_eur_a", filters = list(statinfo = "AVG", currency = currencies), time_format = "num") %>%
   select(time, currency, values) %>%
   mutate(geo = recode(currency, !!!purrr::set_names(names(currencies), currencies))) |>
-  bind_rows(exh_eur_euro)
+  bind_rows(exh_eur_euro) |>
+  mutate(time = as.Date(paste0(time, "-01-01")))
 
 
 

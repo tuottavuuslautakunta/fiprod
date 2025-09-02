@@ -20,12 +20,75 @@ library(tidyverse)
 library(ggcustom)
 library(pttdatahaku)
 
+
 set_gg(theme_fpb(), "fpb")
 
 dat_oecd_pdb_main <- load_dat("dat_oecd_pdb_main")
 
+geos <- c("FI", "SE", "US", "EA20", "DK", "DE")
+
 ```
 
+## Source
+
+OECD productivity database \[https://www.oecd.org/content/dam/oecd/en/data/methods/OECD-Productivity-Statistics-Database-metadata.pdf\]
+
+- V Käypähintainen
+- LR Kiinteähintainen, perusvuosi 2020 (lisäksi L, jossa perusvuosi vaihteleva, ei syytä käyttää).
+
+## BKT per capita
+
+Kiintein hinnoin perusvuosi 2020 valuuttakurssilla (MP) ja ostovoimakorjattuna (PPP)
+
+```{r}
+
+dat_oecd_pdb_main |> 
+  filter(time >= "1995-01-01") |> 
+  filter_recode(
+    geo = geos,
+    measure = c("GDPPOP"),
+    activity = c("Koko talous" = "_T"),
+    price_base = c("LR"),        # 
+    conversion_type = c(MP = "_Z","PPP")
+  ) |> 
+  select(-unit_measure) |> 
+  spread(conversion_type, values) |> 
+  # Jostain syystä OECD:n tietokannassa ei ole USA:n markkinahintaista dataa, mutta se on sama kuin PPP, koska PPP on suhtesssa USAan
+  mutate(MP = if_else(geo == "US", PPP, MP)) |> 
+  mutate(MP = convert_currency(MP, geo, time, to = "USD", base_time = "2020-01-01")) |> 
+  pivot_longer(where(is.numeric), names_to = "conversion_type", values_to = "values") |> 
+  ggplot(aes(time, values, colour = geo)) +
+  facet_wrap(~ conversion_type) +
+  geom_line() +
+  the_title_blank("xyl")
+  
+
+```
+
+```{r}
+
+dat_oecd_pdb_main |> 
+  filter(time >= "1995-01-01") |> 
+  filter_recode(
+    geo = geos,
+    measure = c("GVAHRS"),
+    activity = c("Koko talous" = "_T"),
+    price_base = c("LR"),        # 
+    conversion_type = c(MP = "_Z","PPP")
+  ) |> 
+  select(-unit_measure) |> 
+  spread(conversion_type, values) |> 
+  # # Jostain syystä OECD:n tietokannassa ei ole USA:n markkinahintaista dataa, mutta se on sama kuin PPP, koska PPP on suhtesssa USAan
+  # mutate(MP = if_else(geo == "US", PPP, MP)) |> 
+  mutate(MP = convert_currency(MP, geo, time, to = "USD", base_time = "2020-01-01")) |>
+  pivot_longer(where(is.numeric), names_to = "conversion_type", values_to = "values") |> 
+  ggplot(aes(time, values, colour = geo)) +
+  facet_wrap(~ conversion_type) +
+  geom_line() +
+  the_title_blank("xyl")
+  
+
+```
 
 ```{r}
 
@@ -46,4 +109,68 @@ dat_oecd_pdb_main |>
   geom_line()
 
 ```
+
+```{r}
+
+dat_oecd_pdb_main |> 
+  filter(time >= "1995-01-01") |> 
+  filter_recode(
+    geo = c("FI", "SE", "US", "EA20"),
+    measure = c("GVAHRS"),
+    activity = c("Koko talous" = "_T", "Yksityinen" = "BTNXL"),
+    price_base = c("LR"),        # 
+    conversion_type = c("_Z")
+  ) |> 
+  # group_by(across(where(is.factor))) |> 
+  # mutate(values = rebase(values, time, 2005)) |> 
+  # ungroup() |> |> 
+  mutate(values = convert_currency(values, geo, time, to = "USD", base_time = "2020-01-01")) |> 
+  ggplot(aes(time, values, colour = geo)) +
+  facet_wrap(~ activity) +
+  geom_line()
+
+```
+
+```{r}
+
+dat_oecd_pdb_main |> 
+  filter(time >= "1995-01-01") |> 
+  filter_recode(
+    geo = c("FI", "SE", "US", "EA20"),
+    measure = c("GVA", "GDP"),
+    activity = c("Koko talous" = "_T"),
+    price_base = c("LR", "V"),        # 
+    conversion_type = c("PPP")
+  ) |> 
+  # group_by(across(where(is.factor))) |> 
+  # mutate(values = rebase(values, time, 2005)) |> 
+  # ungroup() |> |> 
+  mutate(values = convert_currency(values, geo, time, to = "USD", base_time = "2020-01-01")) |> 
+  ggplot(aes(time, values, colour = price_base)) +
+  facet_grid(geo ~ measure, scales = "free") +
+  geom_line() +
+  geom_vline(xintercept = as.Date("2020-01-01"))
+
+```
+
+## Toimialoittain
+
+```{r}
+
+dat_oecd_pdb_ind |> 
+  filter(time >= "1995-01-01") |> 
+  filter_recode(
+    geo = geos,
+    measure = c("GVAHRS"),
+    activity = c("_T", "BTE", "F", "GTNXL", "OTQ", "RTU"),
+    price_base = c("LR"),        # 
+    conversion_type = "_Z"
+  ) |> 
+  mutate(values = convert_currency(values, geo, time, to = "USD", base_time = "2020-01-01")) |> 
+  ggplot(aes(time, values, colour = geo)) +
+  facet_wrap(~ activity) +
+  geom_line()
+
+```
+
 
