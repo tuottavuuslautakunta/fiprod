@@ -2,11 +2,11 @@
 
 library(eurostat)
 
-currencies <- c(AU = "AUD", CA = "CAD", US = "USD", JP = "JPY", NZ = "NZD", CH = "CHF", DK = "DKK", SE = "SEK")
+currencies <- c(AU = "AUD", CA = "CAD", US = "USD", JP = "JPY", NZ = "NZD", CH = "CHF", DK = "DKK", SE = "SEK", NO = "NOK")
 
 exh_eur_euro <-
   list(time = 1971:lubridate::year(Sys.time()),
-       geo = eurostat::ea_countries$code,
+       geo = geo_ea,
        currency = "EUR",
        values = 1) |>
   expand.grid()

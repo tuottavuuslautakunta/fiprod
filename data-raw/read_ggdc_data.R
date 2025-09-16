@@ -4,7 +4,9 @@
 
 library(tidyverse)
 
-geos_ggdc <- c(eurostat::ea_countries$code, "SE", "DK", "NO", "UK", "US", "JP", "CA", "AU", "NZ")
+geos_ggdc <- c(c("BE", "DE", "EE", "IE", "EL", "ES", "FR", "IT", "CY", "LV",
+                 "LT", "LU", "MT", "NL", "AT", "PT", "SI", "SK", "FI", "HR"),
+               "SE", "DK", "NO", "UK", "US", "JP", "CA", "AU", "NZ")
 
 
 ggdc_file <- here::here("data-raw", "pld2023_dataset.xlsx")
@@ -69,15 +71,24 @@ ind_ppps <- function(x, w, sector, key) {
     idx <- sector %in% grp
     tibble(
       activity = factor(nm, levels = names(key)),
-      values   = if (any(idx)) stats::weighted.mean(x[idx], w[idx]) else NA_real_
+      ppp_va   = if (any(idx)) stats::weighted.mean(x[idx], w[idx]) else NA_real_
     )
   })
 }
 
 dat_ppp_va_ggdc_oecd <-
   dat_ggdc_23 |>
+  select(time, geo, sector, vars, values) |>
   filter_recode(vars = c("ppp_va", "va")) |>
-  tidyr::pivot_wider(names_from = vars, values_from = values) |>  # prefer pivot_wider over spread()
+  tidyr::pivot_wider(names_from = vars, values_from = values) %>%  # prefer pivot_wider over spread()
+  # Calculate EA PPPs as va weighted mean.
+  bind_rows(
+    .,
+    tibble(summarise(filter(., geo %in% geo_ea),
+                     ppp_va = weighted.mean(ppp_va, va),
+                     va = sum(va),
+                     .by = c(time, sector)), geo = as_factor("EA20"))) |>
+  # map ggdc PPPs to oecd industries and calculate industry group PPPs as weighted means.
   dplyr::group_by(time, geo) |>
   dplyr::reframe(ind_ppps(ppp_va, va, sector, key = key_oecd_ggdc))
 
