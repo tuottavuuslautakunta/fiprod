@@ -1,5 +1,5 @@
 ---
-title: "Indicators for productivity"
+title: "Talouskasvu ja tuottavuus"
 vignette: >
   %\VignetteIndexEntry{Indicators for productivity}
   %\VignetteEngine{quarto::html}
@@ -27,20 +27,30 @@ dat_oecd_pdb_main <- load_dat("dat_oecd_pdb_main")
 
 dat_oecd_pdb_ind <- load_dat("dat_oecd_pdb_ind")
 
-geos <- c("FI", "SE", "US", "EA20", "DK", "DE")
+dat_gva_ind <- load_dat("dat_gva_ind")
+
+geos <- c(
+  "Suomi"         = "FI",
+  "Ruotsi"        = "SE",
+  "USA"           = "US",
+  "Euroalue"      = "EA20",
+  "Tanska"        = "DK",
+  "Saksa"         = "DE"
+)
+
 
 ```
 
-## Source
+## Talouskasvun ja tuottavuuskehityksen tiedot
 
-OECD productivity database \[https://www.oecd.org/content/dam/oecd/en/data/methods/OECD-Productivity-Statistics-Database-metadata.pdf\]
+Päälähteenä käytetty [OECD productivity database](https://data-explorer.oecd.org/vis?fs%5B0%5D=Topic%2C1%7CEconomy%23ECO%23%7CProductivity%23ECO_PRO%23&pg=0&fc=Topic&bp=true&snb=7&df%5Bds%5D=dsDisseminateFinalDMZ&df%5Bid%5D=DSD_PDB%40DF_PDB&df%5Bag%5D=OECD.SDD.TPS&df%5Bvs%5D=2.0&dq=.A.GVAHRS._T.XDC_H..N..&lom=LASTNPERIODS&lo=5&to%5BTIME_PERIOD%5D=false&isAvailabilityDisabled=false):n tietoja ([tietokannan uudistus](https://www.oecd.org/en/publications/the-revamp-of-the-oecd-productivity-database_f07c55d4-en.html) ja [metadata](https://www.oecd.org/content/dam/oecd/en/data/methods/OECD-Productivity-Statistics-Database-metadata.pdf)).
 
-- V Käypähintainen
-- LR Kiinteähintainen, perusvuosi 2020 (lisäksi L, jossa perusvuosi vaihteleva, ei syytä käyttää).
+Toimialoille hintatasotiedot ovat [GGDC Productivity level](https://www.rug.nl/ggdc/productivity/pld/) tietokannasta.
 
-## BKT per capita
+-   V Käypähintainen
+-   LR Kiinteähintainen, perusvuosi 2020 (lisäksi L, jossa perusvuosi vaihteleva).
 
-Kiintein hinnoin perusvuosi 2020 valuuttakurssilla (MP) ja ostovoimakorjattuna (PPP)
+## BKT:n kasvu
 
 ```{r}
 
@@ -51,18 +61,130 @@ dat_oecd_pdb_main |>
     measure = c("GDPPOP"),
     activity = c("Koko talous" = "_T"),
     price_base = c("LR"),        # 
+    conversion_type = c("PPP")
+  ) |> 
+  select(-unit_measure) |> 
+  mutate(values = rebase(values, time, baseyear = 2007), .by = where(is.factor)) |> 
+  ggplot(aes(time, values, colour = geo)) +
+  geom_line() +
+  the_title_blank("xyl") +
+  labs(
+    title = "BKT per capita",
+    subtitle = "Indeksi, 2007 = 100",
+    caption = "Lähde: OECD, Tuottavuuslautakunta"
+  )
+  
+
+```
+
+## Kasvu jaettuna tuottavuuteen ja työtunteihin
+
+
+```{r}
+
+dat_oecd_pdb_main |> 
+  filter(time >= "1995-01-01") |> 
+  filter_recode(
+    geo = geos,
+    measure = c("Työn tuottavuus" = "GVAHRS", "Tunnit per capita" = "HRSPOP"),
+    activity = c("Koko talous" = "_T"),
+    unit_measure = c("USD_PPP_H", "H_PS"),
+    price_base = c("LR", "_Z"),        
+    conversion_type = c("PPP", "_Z")
+  ) |> 
+  select(-unit_measure) |> 
+  mutate(values = rebase(values, time, baseyear = 2007), .by = where(is.factor)) |> 
+  ggplot(aes(time, values, colour = geo)) +
+  facet_wrap(~measure) +
+  geom_line() +
+  the_title_blank("xyl") +
+  labs(
+    title = "BKT per capita",
+    subtitle = "Indeksi, 2007 = 100",
+    caption = "Lähde: OECD, Tuottavuuslautakunta"
+  )
+
+```
+
+
+## BKT per capita taso
+
+BKT:n ja tuottavuuden kasvua on helpompi vertailla kuin tasoa, sillä maissa on 
+eri hintasot ja myös valuuttakurssit vaihtelevat paljon.
+
+### Kiintein hinnoin valuuttakurssilla ja ostovoimakorjattuna
+
+Perusvuosi 2020 
+
+```{r}
+
+dat_oecd_pdb_main |> 
+  filter(time >= "1995-01-01") |> 
+  filter_recode(
+    measure = c("GDPPOP"),
+    activity = c("Koko talous" = "_T"),
+    price_base = c("LR"),        # 
+    conversion_type = c(MP = "_Z","PPP")
+  ) |> 
+  select(-unit_measure) |> 
+  spread(conversion_type, values) |>
+  # Jostain syystä OECD:n tietokannassa ei ole USA:n markkinahintaista dataa, mutta se on sama kuin PPP, koska PPP on suhtesssa USAan
+  mutate(MP = if_else(geo == "US", PPP, MP)) |>
+  mutate(MP = convert_currency(MP, geo, time, to = "USD", base_time = "2020-01-01")) |> 
+  pivot_longer(where(is.numeric), names_to = "conversion_type", values_to = "values") |>
+  filter_recode(
+    geo = geos,
+    conversion_type = c("Valuuttakurssi" = "MP", "Ostovoimapariteetti" ="PPP")
+  ) |>
+  ggplot(aes(time, values, colour = geo)) +
+  facet_wrap(~ conversion_type) +
+  geom_line() +
+  the_title_blank("xyl") +
+  labs(
+    title = "BKT per capita kiintein hinnoin",
+    subtitle = "Vuoden 2020 USD",
+    caption = "Lähde: OECD, Tuottavuuslautakunta"
+  )
+  
+
+```
+
+
+
+
+### Käyvin hinnoin valuuttakurssilla ja ostovoimakorjattuna
+
+```{r}
+
+dat_oecd_pdb_main |> 
+  filter(time >= "1995-01-01") |> 
+  filter_recode(
+     measure = c("GDPPOP"),
+    activity = c("Koko talous" = "_T"),
+    price_base = c("V"),        # 
     conversion_type = c(MP = "_Z","PPP")
   ) |> 
   select(-unit_measure) |> 
   spread(conversion_type, values) |> 
   # Jostain syystä OECD:n tietokannassa ei ole USA:n markkinahintaista dataa, mutta se on sama kuin PPP, koska PPP on suhtesssa USAan
-  mutate(MP = if_else(geo == "US", PPP, MP)) |> 
-  mutate(MP = convert_currency(MP, geo, time, to = "USD", base_time = "2020-01-01")) |> 
+  # mutate(MP = if_else(geo == "US", PPP, MP)) |> 
+  mutate(MP1 = convert_currency(MP, geo, time, to = "USD", base_time = "2020-01-01")) |>
+  mutate(MP2 = convert_currency(MP, geo, time, to = "USD")) |> 
+  select(-MP) |> 
   pivot_longer(where(is.numeric), names_to = "conversion_type", values_to = "values") |> 
+  filter_recode(
+    geo = geos,
+    conversion_type = c("Valuuttakurssi, vaihtuva" = "MP2","Valuuttakurssi 2020" = "MP1" , "Ostovoimapariteetti 2020" ="PPP")
+  ) |>
   ggplot(aes(time, values, colour = geo)) +
   facet_wrap(~ conversion_type) +
   geom_line() +
-  the_title_blank("xyl")
+  the_title_blank("xyl") +
+  labs(
+    title = "BKT per capita nimellisin hinnoin",
+    subtitle = "Vuoden 2020 USD",
+    caption = "Lähde: OECD, Tuottavuuslautakunta"
+  )
   
 
 ```
@@ -73,6 +195,118 @@ dat_oecd_pdb_main |>
   filter(time >= "1995-01-01") |> 
   filter_recode(
     geo = geos,
+    measure = c("Työn tuottavuus" = "GVAHRS", "Tunnit per capita" = "HRSPOP"),
+    activity = c("Koko talous" = "_T"),
+    unit_measure = c("USD_PPP_H", "H_PS"),
+    price_base = c("LR", "_Z"),        
+    conversion_type = c("PPP", "_Z")
+  ) |> 
+  select(-unit_measure) |> 
+  ggplot(aes(time, values, colour = geo)) +
+  facet_wrap(~measure, scales = "free") +
+  geom_line() +
+  the_title_blank("xyl") +
+  labs(
+    title = "BKT per capita",
+    subtitle = "Indeksi, 2007 = 100",
+    caption = "Lähde: OECD, Tuottavuuslautakunta"
+  )
+
+```
+
+```{r}
+
+dat_oecd_pdb_main |> 
+  filter(time >= "1995-01-01") |> 
+  filter_recode(
+    geo = geos,
+    measure = c("GVAHRS", "GDP", "GVA"),
+    activity = c("Koko talous" = "_T"),
+    unit_measure = c("USD_PPP_H", "USD_PPP"),
+    price_base = c("LR"),        
+    conversion_type = c("PPP")
+  ) |>
+  select(-unit_measure) |> 
+  spread(measure, values) |> 
+  mutate(HRS = GVA / GVAHRS,
+         GDPHRS = GDP / HRS) |> 
+  pivot_longer(where(is.numeric), names_to = "measure", values_to = "values") |> 
+  filter_recode(
+    measure = c("GDPHRS", "GVAHRS")
+  ) |> 
+  ggplot(aes(time, values, colour = geo)) +
+  facet_wrap(~measure, scales = "free") +
+  geom_line() +
+  the_title_blank("xyl") +
+  labs(
+    title = "BKT per capita",
+    subtitle = "Indeksi, 2007 = 100",
+    caption = "Lähde: OECD, Tuottavuuslautakunta"
+  )
+
+```
+
+```{r}
+
+dat_oecd_pdb_main |> 
+  filter(time >= "1995-01-01") |> 
+  filter_recode(
+    geo = geos,
+    measure = c("GDP", "GVA"),
+    activity = c("Koko talous" = "_T"),
+    # unit_measure = c("USD_PPP"),
+    price_base = c("V") ,        
+    conversion_type = c("_Z")
+  ) |> 
+  select(-unit_measure) |> 
+  ggplot(aes(time, values, colour = measure)) +
+  facet_wrap(~geo, scales = "free") +
+  geom_line() +
+  the_title_blank("xyl") +
+  labs(
+    title = "BKT per capita",
+    subtitle = "Indeksi, 2007 = 100",
+    caption = "Lähde: OECD, Tuottavuuslautakunta"
+  ) +
+  geom_hline(yintercept = 0)
+
+```
+
+## Työn tuottavuus
+
+### Työn tuottavuuden kasvu
+
+```{r}
+
+dat_oecd_pdb_main |> 
+  filter(time >= "1995-01-01") |> 
+  filter_recode(
+    geo = geos,
+    measure = c("GVAHRS"),
+    activity = c("Koko talous" = "_T"),
+    price_base = c("LR"),        # 
+    conversion_type = c("PPP")
+  ) |> 
+  select(-unit_measure) |> 
+  mutate(values = rebase(values, time, baseyear = 2007), .by = where(is.factor)) |> 
+  ggplot(aes(time, values, colour = geo)) +
+  geom_line() +
+  the_title_blank("xyl") +
+  labs(
+    title = "Työn tuottavuus, arvonlisä / työtunnit",
+    subtitle = "Indeksi, 2007 = 100",
+    caption = "Lähde: OECD, Tuottavuuslautakunta"
+  )
+  
+
+```
+
+```{r}
+
+dat_oecd_pdb_main |> 
+  filter(time >= "1995-01-01") |> 
+  filter_recode(
+    # geo = geos,
     measure = c("GVAHRS"),
     activity = c("Koko talous" = "_T"),
     price_base = c("LR"),        # 
@@ -84,6 +318,10 @@ dat_oecd_pdb_main |>
   # mutate(MP = if_else(geo == "US", PPP, MP)) |> 
   mutate(MP = convert_currency(MP, geo, time, to = "USD", base_time = "2020-01-01")) |>
   pivot_longer(where(is.numeric), names_to = "conversion_type", values_to = "values") |> 
+  filter_recode(
+    geo = geos,
+    conversion_type = c("Valuuttakurssi" = "MP", "Ostovoimapariteetti" ="PPP")
+  ) |>
   ggplot(aes(time, values, colour = geo)) +
   facet_wrap(~ conversion_type) +
   geom_line() +
@@ -97,7 +335,7 @@ dat_oecd_pdb_main |>
 dat_oecd_pdb_main |> 
   filter(time >= "1995-01-01") |> 
   filter_recode(
-    geo = c("FI", "SE", "US", "EA20"),
+    geo = geos,
     measure = c("GVAHRS"),
     activity = c("Koko talous" = "_T", "Yksityinen" = "BTNXL"),
     price_base = c("LR"),        # 
@@ -133,25 +371,72 @@ dat_oecd_pdb_main |>
 
 ```
 
-```{r}
 
-dat_oecd_pdb_main |> 
+## OECD ja GGDC ero PPP:ssä
+
+Toimialoittaiset tiedot on hintatasokorjattu käyttämällä GGDC:n Productivity level dabase:n tietoja toimialoittaisista PPP hintatasoista.
+
+Koko talouden ja toimialaryhmien hinnat on aggregoitu arvonlisäpainotettuina keskiarvoina. Seuraavassa on tarkasteltu hintatasokorjatun bruttoarvonlisän eroja koko talouden tasolla OECD:n ja GGDC:n PPP tiedoilla laskettuna.
+
+Sarjoissa kuuluukin olla pieni ero, koska OECD:n perusvuosi on 2020 ja GGDC:n 2017. Tarkastelluilla mailla erot selittyvät juuri perusvuodella.
+
+```{r}
+# 
+# dat_gva_ind |> str()
+# dat_oecd_pdb_main |> str()
+
+dat1 <- dat_oecd_pdb_main |> 
   filter(time >= "1995-01-01") |> 
   filter_recode(
-    geo = c("FI", "SE", "US", "EA20"),
-    measure = c("GVA", "GDP"),
-    activity = c("Koko talous" = "_T"),
-    price_base = c("LR", "V"),        # 
+    geo = geos,
+    measure = c("GVA"),
+    activity = c("_T"),
+    price_base = c("LR"),        # 
     conversion_type = c("PPP")
   ) |> 
-  # group_by(across(where(is.factor))) |> 
-  # mutate(values = rebase(values, time, 2005)) |> 
-  # ungroup() |> |> 
-  mutate(values = convert_currency(values, geo, time, to = "USD", base_time = "2020-01-01")) |> 
-  ggplot(aes(time, values, colour = price_base)) +
-  facet_grid(geo ~ measure, scales = "free") +
+  select(time, geo, values) |> 
+  mutate(ppp_source = "oecd")
+  
+dat2 <- dat_gva_ind |> 
+  filter(time >= "1995-01-01") |> 
+  filter_recode(
+    geo = geos,
+    measure = c("GVA"),
+    activity = c("_T"),
+    vars = "fp_2020_ppp17"
+  ) |> 
+  select(time, geo, values) |> 
+  mutate(ppp_source = "ggdc")
+
+bind_rows(dat1, dat2) |> 
+  mutate(values = values / 1000) |> 
+  ggplot(aes(time, values, colour = ppp_source)) +
+  facet_wrap(~geo, scales = "free") +
   geom_line() +
-  geom_vline(xintercept = as.Date("2020-01-01"))
+  the_title_blank("xyl") +
+  the_legend_bot() +
+  labs(title = "Bruttoarvonlisä koko taloudessa",
+       subtitle = "Mrd. PPP dollaria 2020 tai 2017 hinnoin")
+
+```
+
+```{r}
+
+dat_oecd_pdb_ind |> 
+  filter(time >= "1995-01-01") |> 
+  filter_recode(
+    measure = c("GVAHRS"),
+    activity = c("_T"),
+    price_base = c("LR"),        # 
+    conversion_type = "_Z"
+  ) |> 
+  mutate(values = convert_currency(values, geo, time, to = "USD", base_time = "2020-01-01")) |> 
+  filter_recode(
+    geo = geos
+  ) |> 
+  ggplot(aes(time, values, colour = geo)) +
+  facet_wrap(~ activity) +
+  geom_line()
 
 ```
 
@@ -162,17 +447,89 @@ dat_oecd_pdb_main |>
 dat_oecd_pdb_ind |> 
   filter(time >= "1995-01-01") |> 
   filter_recode(
-    geo = geos,
     measure = c("GVAHRS"),
     activity = c("_T", "BTE", "F", "GTNXL", "OTQ", "RTU"),
     price_base = c("LR"),        # 
     conversion_type = "_Z"
   ) |> 
   mutate(values = convert_currency(values, geo, time, to = "USD", base_time = "2020-01-01")) |> 
+  filter_recode(
+    geo = geos
+  ) |> 
   ggplot(aes(time, values, colour = geo)) +
   facet_wrap(~ activity) +
   geom_line()
 
 ```
 
+```{r}
 
+dat_gva_ind |> 
+  filter(time >= "1995-01-01") |> 
+  filter_recode(
+    geo = c("FI", "SE", "EA20", "US"),
+    vars = c("fp_2020_xr17", "fp_2020_ppp17"),
+    activity = c("_T", "BTNXL", "OTQ"),
+    measure = "GVAHRS"
+  ) |> 
+  ggplot(aes(time, values, colour = geo)) +
+  facet_grid(vars~activity) +
+  geom_line()
+
+
+
+```
+
+```{r}
+
+dat_gva_ind |> 
+  filter(time >= "1995-01-01") |> 
+  filter_recode(
+    geo = c("FI", "SE", "EA20", "US"),
+    vars = c("fp_2020_xr17", "fp_2020_ppp17"),
+    activity = c("L"),
+    measure = "GVAHRS"
+  ) |> 
+  ggplot(aes(time, values, colour = geo)) +
+  facet_grid(vars~activity) +
+  geom_line()
+
+
+
+```
+
+```{r}
+
+dat_gva_ind |> 
+  filter(time >= "1995-01-01") |> 
+  filter_recode(
+    geo = c("FI", "SE", "EA20", "US"),
+    vars = c("fp_2020_xr17", "fp_2020_ppp17"),
+    activity = c("BTE", "F", "GTNXL", "RTU"),
+    measure = "GVAHRS"
+  ) |> 
+  ggplot(aes(time, values, colour = geo)) +
+  facet_grid(vars~activity) +
+  geom_line()
+
+
+
+```
+
+```{r}
+
+dat_gva_ind |> 
+  filter(time >= "1995-01-01") |> 
+  filter_recode(
+    geo = c("FI", "SE", "EA20", "US"),
+    vars = c("fp_2020_xr17", "fp_2020_ppp17"),
+    activity = c("C"),
+    measure = "GVAHRS"
+  ) |> 
+  ggplot(aes(time, values, colour = geo)) +
+  facet_grid(vars~activity) +
+  geom_line()
+
+
+
+```

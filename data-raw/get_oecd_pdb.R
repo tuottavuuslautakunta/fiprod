@@ -12,7 +12,7 @@ pdb_dataset <- "OECD.SDD.TPS,DSD_PDB@DF_PDB,"
 ## Main data
 
 pdb_main_key <- oecd_make_filter(
-  list(geos_oecd, "A", c("GVAEMP", "GVAHRS", "GDP", "GVA", "GDPPOP"), c("_T", "BTNXL"), NULL, NULL, "N", NULL, NULL))
+  list(geos_oecd, "A", c("GVAEMP", "GVAHRS", "GDP", "GVA", "GDPPOP", "HRS", "POP", "HRSPOP"), c("_T", "BTNXL"), NULL, NULL, "N", NULL, NULL))
 
 dat_oecd_pdb_main_0 <- get_dataset(
   dataset = pdb_dataset, filter = pdb_main_key)
