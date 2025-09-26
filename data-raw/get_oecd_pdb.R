@@ -37,7 +37,7 @@ save_dat(dat_oecd_pdb_main, overwrite = TRUE)
 
 
 pdb_ind_key <- oecd_make_filter(
-  list(geos_oecd, "A", c("GVAEMP", "GVAHRS", "GVA"), NULL, NULL, NULL, "N", NULL, "_Z"))
+  list(geos_oecd, "A", c("GVAEMP", "GVAHRS", "GVA", "EMP"), NULL, NULL, NULL, "N", NULL, "_Z"))
 
 dat_oecd_pdb_ind_0 <- get_dataset(
   dataset = pdb_dataset, filter = pdb_ind_key)

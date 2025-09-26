@@ -1,6 +1,6 @@
 Package: fiprod
 Title: Finnish Productivity Board Tools
-Version: 0.0.0.9000
+Version: 0.0.1.9000
 Authors@R: 
     person("Janne", "Huovari", , "janne.huovari@gov.fi", role = c("aut", "cre"))
 Description: Package for monitoring and managing productivity-related data
@@ -30,7 +30,7 @@ Imports:
     pxwebtools (>= 0.1.5),
     tidyselect
 Remotes: 
-    jhuovari/pxwebtools
+    jhuovari/pxwebtools,
     jhuovari/ggcustom
 Config/testthat/edition: 3
 Depends: 

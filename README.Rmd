@@ -24,7 +24,7 @@ and figure production. The old package is
 
 ## Data
 
-The package sisältää valmiiksi esiprosessoituja aineistoja, jotka tuotetaan
+Paketti sisältää valmiiksi esiprosessoituja aineistoja, jotka tuotetaan
 `data-raw/`-hakemistossa sijaitsevilla skripteillä. Data kirjoitetaan joko
 paketin `data/`-hakemistoon (`.rda`-objekteina, joita voi ladata `data()`- tai
 `load()`-funktioilla) tai `inst/extdata/`-hakemistoon Parquet-tiedostoiksi,
