@@ -1,14 +1,16 @@
+editor: visual
+
 ---
 title: "Talouskasvu ja tuottavuus"
 execute:
   warning: false
   message: false
+execute-dir: project
 format: 
   html:
     embed-resources: true
     code-fold: true
     code-summary: "Näytä koodi"
-editor: visual
 ---
 
 KESKEN
@@ -19,7 +21,7 @@ Päivitetty: r Sys.Date()
 #| label: setup
 # library(fiprod)
 
-devtools::load_all()
+if (interactive()) devtools::load_all(".") else library(fiprod) 
 
 library(tidyverse)
 library(ggcustom)
@@ -88,7 +90,6 @@ dat_oecd_pdb_main |>
 ```
 
 ## Kasvu jaettuna tuottavuuteen ja työtunteihin
-
 
 ```{r}
 
@@ -173,6 +174,7 @@ dat_gva_ind |>
   )
 
 ```
+
 ### Yksityinen sektori jaettuna
 
 ```{r}
@@ -301,16 +303,13 @@ activity = c("Teollisuus" = "BTE", "Rakentaminen" = "F","Yksityiset palvelut" = 
 
 ```
 
-
-
 ## BKT:n ja tuottavuuden taso
 
-BKT:n ja tuottavuuden kasvua on helpompi vertailla kuin tasoa, sillä maissa on 
-eri hintasot ja myös valuuttakurssit vaihtelevat paljon.
+BKT:n ja tuottavuuden kasvua on helpompi vertailla kuin tasoa, sillä maissa on eri hintasot ja myös valuuttakurssit vaihtelevat paljon.
 
 ### Kiintein hinnoin valuuttakurssilla ja ostovoimakorjattuna
 
-Perusvuosi 2020 
+Perusvuosi 2020
 
 ```{r}
 
@@ -344,9 +343,6 @@ dat_oecd_pdb_main |>
   
 
 ```
-
-
-
 
 ### Käyvin hinnoin valuuttakurssilla ja ostovoimakorjattuna
 
@@ -389,12 +385,9 @@ dat_oecd_pdb_main |>
 
 Selittyykö BKT taso eroa tuottavuudella vai työtunneilla.
 
-Työn tuottavuudelle OECD:n tietokannassa on arvonlisäys per työtunnit -muuttuja
-ja työtunneille työtunnit per capita -muuttuja.
+Työn tuottavuudelle OECD:n tietokannassa on arvonlisäys per työtunnit -muuttuja ja työtunneille työtunnit per capita -muuttuja.
 
-Selkeästi tasoero tulee työn tuottavuudesta, ei työtunneista. Työn tuottavuuden
-taso ero Yhdysvaltoihin on kuitenkin paljon suurempi kuin BKT per capita, vaikka
-työntunnit per capita on melkein sama. Miksi näin?
+Selkeästi tasoero tulee työn tuottavuudesta, ei työtunneista. Työn tuottavuuden taso ero Yhdysvaltoihin on kuitenkin paljon suurempi kuin BKT per capita, vaikka työntunnit per capita on melkein sama. Miksi näin?
 
 ```{r}
 
@@ -421,14 +414,9 @@ dat_oecd_pdb_main |>
 
 ```
 
-Syy tähän on Yhdysvaltojen ja Eurostatin erilainen tilastointikäytäntö. BKT
-työtuntia kohden näyttää erojen osalta samanlaiselta kuin BKT per capita. 
-Arvonlisä työtuntia kohden on sen sijaan Yhdysvalloissa selvästi korkeampi kuin
-EU maissa.
+Syy tähän on Yhdysvaltojen ja Eurostatin erilainen tilastointikäytäntö. BKT työtuntia kohden näyttää erojen osalta samanlaiselta kuin BKT per capita. Arvonlisä työtuntia kohden on sen sijaan Yhdysvalloissa selvästi korkeampi kuin EU maissa.
 
-Eurooppalaisessa tilinpidossa BKT = arvonlisä + tuoteverot - tukipalkkiot.
-Yhdysvalloissa BKT ja arvonlisä ovat samoja ja tuoteverot ja tukipalkkiot 
-lasketaan mukaan jo arvonlisätasolla. 
+Eurooppalaisessa tilinpidossa BKT = arvonlisä + tuoteverot - tukipalkkiot. Yhdysvalloissa BKT ja arvonlisä ovat samoja ja tuoteverot ja tukipalkkiot lasketaan mukaan jo arvonlisätasolla.
 
 ```{r}
 
@@ -462,8 +450,6 @@ dat_oecd_pdb_main |>
 
 ```
 
-
-
 ```{r}
 
 dat_oecd_pdb_main |> 
@@ -490,20 +476,11 @@ dat_oecd_pdb_main |>
 
 ```
 
+BKT:ta voidaan käyttää vai koko talouden osalta. Arvonlisää täytyy käyttää, jos taloutta tarkastellaa toimialoittain tai toimialaryhmittäin.
 
-BKT:ta voidaan käyttää vai koko talouden osalta. Arvonlisää täytyy käyttää,
-jos taloutta tarkastellaa toimialoittain tai toimialaryhmittäin.
+Yksityisen sektorin tuottavuuserot eivät ole yhtä suuria, vaikka käytettäisiin arvonlisää.
 
-Yksityisen sektorin tuottavuuserot eivät ole yhtä suuria, vaikka käytettäisiin
-arvonlisää.
-
-Yksityisellä sektorilla tarkoitetaan OECD:n tilastossa kohtuullisen 
-luotettavasti mitattavaa osaa taloudesta ja siihen sisältyvät toimialat
-laajasta teollisuudesta (B, C, E, D), rakentaminen (F) ja 
-markkinapalvelut (G-N pl. L). Siitä jää ulkopuolelle siis maatalous, 
-kiinteistöala, julkisluonteiset palvelut (eli julkinen hallnto, koulutus sekä 
-sosiaali- ja terveyspalvelut. Myös näihin sisältyvät yksitykset palvelut) sekä 
-pienet palvelualat (R, S, T).
+Yksityisellä sektorilla tarkoitetaan OECD:n tilastossa kohtuullisen luotettavasti mitattavaa osaa taloudesta ja siihen sisältyvät toimialat laajasta teollisuudesta (B, C, E, D), rakentaminen (F) ja markkinapalvelut (G-N pl. L). Siitä jää ulkopuolelle siis maatalous, kiinteistöala, julkisluonteiset palvelut (eli julkinen hallnto, koulutus sekä sosiaali- ja terveyspalvelut. Myös näihin sisältyvät yksitykset palvelut) sekä pienet palvelualat (R, S, T).
 
 ```{r}
 
@@ -533,11 +510,9 @@ dat_oecd_pdb_main |>
 
 ```
 
-
 ## OECD ja GGDC ero PPP:ssä
 
-Toimialoittaiset tiedot on hintatasokorjattu käyttämällä GGDC:n Productivity level dabase:n tietoja toimialoittaisista PPP hintatasoista. OECD:n tietokannassa ei ole 
-ostovoimakorjattuja sarjoja toimialaoille.
+Toimialoittaiset tiedot on hintatasokorjattu käyttämällä GGDC:n Productivity level dabase:n tietoja toimialoittaisista PPP hintatasoista. OECD:n tietokannassa ei ole ostovoimakorjattuja sarjoja toimialaoille.
 
 Koko talouden ja toimialaryhmien hinnat on aggregoitu arvonlisäpainotettuina keskiarvoina. Seuraavassa on tarkasteltu hintatasokorjatun bruttoarvonlisän eroja koko talouden tasolla OECD:n ja GGDC:n PPP tiedoilla laskettuna.
 
@@ -582,9 +557,6 @@ bind_rows(dat1, dat2) |>
        subtitle = "Mrd. PPP dollaria 2020 tai 2017 hinnoin")
 
 ```
-
-
-
 
 ```{r}
 #| fig-width: 7
@@ -641,8 +613,6 @@ dat_gva_ind|>
 
 ```
 
-
-
 ```{r}
 
 dat_gva_ind|> 
@@ -668,6 +638,7 @@ dat_gva_ind|>
   ) 
 
 ```
+
 ```{r}
 #| fig-width: 7
 #| fig-height: 7
@@ -695,9 +666,3 @@ dat_gva_ind|>
   ) 
 
 ```
-
-
-
-
-
-

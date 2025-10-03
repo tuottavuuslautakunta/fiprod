@@ -1,14 +1,21 @@
 ---
 title: "GGDC data"
-format: html
-editor: visual
+execute:
+  warning: false
+  message: false
+format: 
+  html:
+    embed-resources: true
+    code-fold: true
+    code-summary: "Näytä koodi"
+draft: true
 ---
 
 ```{r}
 #| label: setup
 # library(fiprod)
 
-devtools::load_all()
+if (interactive()) devtools::load_all(".") else library(fiprod) 
 
 library(tidyverse)
 library(ggcustom)
