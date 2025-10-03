@@ -1,5 +1,3 @@
-editor: visual
-
 ---
 title: "Talouskasvu ja tuottavuus"
 execute:
@@ -15,7 +13,7 @@ format:
 
 KESKEN
 
-Päivitetty: r Sys.Date()
+Päivitetty: `r Sys.Date()`
 
 ```{r}
 #| label: setup
@@ -56,14 +54,15 @@ Päälähteenä käytetty [OECD productivity database](https://data-explorer.oec
 
 Toimialoille hintatasotiedot ovat [GGDC Productivity level](https://www.rug.nl/ggdc/productivity/pld/) tietokannasta.
 
-OECD koodit:
-
--   V Käypähintainen
--   LR Kiinteähintainen, perusvuosi 2020 (lisäksi L, jossa perusvuosi vaihteleva).
-
 ## BKT:n kasvu
 
 ```{r}
+
+# OECD koodit:
+# 
+# V Käypähintainen
+# 
+# LR Intercontinental, perusvuosi 2020 (lisäksi L, jossa perusvuosi vaihteleva).
 
 dat_oecd_pdb_main |> 
   filter(time >= "1995-01-01") |> 

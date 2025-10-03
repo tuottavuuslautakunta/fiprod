@@ -67,9 +67,8 @@
 
 
 
-    <p>editor: visual</p>
-<p>KESKEN</p>
-<p>Päivitetty: r Sys.Date()</p>
+    <p>KESKEN</p>
+<p>Päivitetty: 2025-10-03</p>
 <div class="cell">
 <details class="code-fold"><summary>Näytä koodi</summary><div class="sourceCode cell-code" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># library(fiprod)</span></span>
@@ -105,15 +104,17 @@
 </h2>
 <p>Päälähteenä käytetty <a href="https://data-explorer.oecd.org/vis?fs%5B0%5D=Topic%2C1%7CEconomy%23ECO%23%7CProductivity%23ECO_PRO%23&amp;pg=0&amp;fc=Topic&amp;bp=true&amp;snb=7&amp;df%5Bds%5D=dsDisseminateFinalDMZ&amp;df%5Bid%5D=DSD_PDB%40DF_PDB&amp;df%5Bag%5D=OECD.SDD.TPS&amp;df%5Bvs%5D=2.0&amp;dq=.A.GVAHRS._T.XDC_H..N..&amp;lom=LASTNPERIODS&amp;lo=5&amp;to%5BTIME_PERIOD%5D=false&amp;isAvailabilityDisabled=false" class="external-link">OECD productivity database</a>:n tietoja (<a href="https://www.oecd.org/en/publications/the-revamp-of-the-oecd-productivity-database_f07c55d4-en.html" class="external-link">tietokannan uudistus</a> ja <a href="https://www.oecd.org/content/dam/oecd/en/data/methods/OECD-Productivity-Statistics-Database-metadata.pdf" class="external-link">metadata</a>).</p>
 <p>Toimialoille hintatasotiedot ovat <a href="https://www.rug.nl/ggdc/productivity/pld/" class="external-link">GGDC Productivity level</a> tietokannasta.</p>
-<p>OECD koodit:</p>
-<ul>
-<li>V Käypähintainen</li>
-<li>LR Kiinteähintainen, perusvuosi 2020 (lisäksi L, jossa perusvuosi vaihteleva).</li>
-</ul></section><section class="level2"><h2 id="bktn-kasvu">BKT:n kasvu<a class="anchor" aria-label="anchor" href="#bktn-kasvu"></a>
+</section><section class="level2"><h2 id="bktn-kasvu">BKT:n kasvu<a class="anchor" aria-label="anchor" href="#bktn-kasvu"></a>
 </h2>
 <div class="cell">
 <details class="code-fold"><summary>Näytä koodi</summary><div class="sourceCode cell-code" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">dat_oecd_pdb_main</span> <span class="op">|&gt;</span> </span>
+<code class="sourceCode R"><span><span class="co"># OECD koodit:</span></span>
+<span><span class="co"># </span></span>
+<span><span class="co"># V Käypähintainen</span></span>
+<span><span class="co"># </span></span>
+<span><span class="co"># LR Intercontinental, perusvuosi 2020 (lisäksi L, jossa perusvuosi vaihteleva).</span></span>
+<span></span>
+<span><span class="va">dat_oecd_pdb_main</span> <span class="op">|&gt;</span> </span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">time</span> <span class="op">&gt;=</span> <span class="st">"1995-01-01"</span><span class="op">)</span> <span class="op">|&gt;</span> </span>
 <span>  <span class="fu"><a href="https://rdrr.io/pkg/pttdatahaku/man/filter_recode.html" class="external-link">filter_recode</a></span><span class="op">(</span></span>
 <span>    geo <span class="op">=</span> <span class="va">geos</span>,</span>
