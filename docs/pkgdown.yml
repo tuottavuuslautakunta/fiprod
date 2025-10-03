@@ -1,0 +1,10 @@
+pandoc: '3.4'
+pkgdown: 2.1.3
+pkgdown_sha: ~
+articles:
+  ggdc: ggdc.html
+  main: main.html
+last_built: 2025-10-03T13:06Z
+urls:
+  reference: https://tuottavuuslautakunta.github.io/fiprod/reference
+  article: https://tuottavuuslautakunta.github.io/fiprod/articles
