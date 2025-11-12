@@ -2,6 +2,7 @@
 
 export(check_factor_levels)
 export(convert_currency)
+export(geo_names)
 export(load_dat)
 export(oecd_clean_data)
 export(oecd_make_filter)

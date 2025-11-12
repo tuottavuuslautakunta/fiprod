@@ -1,4 +1,4 @@
-## code to prepare `DATASET` dataset goes here
+## code to prepare productivity datasets
 
 library(tidyverse)
 library(countrycode)
@@ -26,7 +26,9 @@ dat_oecd_pdb_main <-
                            "unit_measure"   = "UNIT_MEASURE",
                            "price_base"     = "PRICE_BASE",
                            "conversion_type"= "CONVERSION_TYPE")) |>
-  mutate(geo = as_factor(countrycode(geo, "iso3c", "eurostat", nomatch = NULL)))
+  mutate(geo = as_factor(countrycode(geo, "iso3c", "eurostat", nomatch = NULL))) |>
+  unite("var_id", measure, unit_measure, price_base, conversion_type, sep = "-", remove = FALSE) |>
+  mutate(var_id = as_factor(var_id))
 
 save_dat(dat_oecd_pdb_main, overwrite = TRUE)
 
@@ -51,6 +53,33 @@ dat_oecd_pdb_ind <-
                            "unit_measure"   = "UNIT_MEASURE",
                            "price_base"     = "PRICE_BASE",
                            "conversion_type"= "CONVERSION_TYPE")) |>
-  mutate(geo = as_factor(countrycode(geo, "iso3c", "eurostat", nomatch = NULL)))
+  mutate(geo = as_factor(countrycode(geo, "iso3c", "eurostat", nomatch = NULL))) |>
+  unite("var_id", measure, unit_measure, price_base, conversion_type, sep = "-", remove = FALSE) |>
+  mutate(var_id = as_factor(var_id))
 
 save_dat(dat_oecd_pdb_ind, overwrite = TRUE)
+
+
+## R&D data
+
+rd_dataset <- "OECD.STI.STP,DSD_MSTI@DF_MSTI,"
+
+pdb_rd_key <- oecd_make_filter(
+  list(geos_oecd, "A", c("G", "T_TT", "GDP", "TOT_EMP"), NULL, c("V", "_Z"), "_Z"))
+
+dat_oecd_pdb_rd_0 <- get_dataset(
+  dataset = rd_dataset, filter = pdb_rd_key)
+
+dat_oecd_pdb_rd <-
+  dat_oecd_pdb_rd_0 |>
+  oecd_clean_data(drop_vars = c("UNIT_MULT", "OBS_STATUS"),
+                  vars = c(geo = "REF_AREA",
+                           "measure"        = "MEASURE",
+                           "unit_measure"   = "UNIT_MEASURE",
+                           "price_base"     = "PRICE_BASE",
+                           "transformation"= "TRANSFORMATION")) |>
+  mutate(geo = as_factor(countrycode(geo, "iso3c", "eurostat", nomatch = NULL))) |>
+  unite("var_id", measure, unit_measure, price_base, transformation, sep = "-", remove = FALSE) |>
+  mutate(var_id = as_factor(var_id))
+
+save_dat(dat_oecd_pdb_rd, overwrite = TRUE)
