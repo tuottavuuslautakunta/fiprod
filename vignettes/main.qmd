@@ -349,6 +349,8 @@ dat_oecd_pdb_main |>
 
 # ggptt::ggsave_ppt_half("bkt_capita", plot = last_plot() filter(p@data, geo != "Tanska") +theme_vm() +the_title_blank("xyl"))
 
+# last_plot()$data |> filter(geo != "muut")  |> select(geo, time, values) |> spread(geo, values) |> conc()
+
 ```
 
 ### Kiintein hinnoin valuuttakurssilla ja ostovoimakorjattuna
