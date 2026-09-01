@@ -2,11 +2,12 @@
 
 KESKEN
 
-Päivitetty: 2026-05-26
+Päivitetty: 2026-09-01
 
 Näytä koodi
 
 ``` r
+
 # library(fiprod)
 
 if (interactive()) devtools::load_all(".") else library(fiprod) 
@@ -21,11 +22,9 @@ set_gg(theme_fpb())
 y_log_breaks <- scales::breaks_pretty(n = 8)
 
 
-dat_oecd_pdb_main <- load_dat("dat_oecd_pdb_main") 
+dat_gdp_main <- load_dat("dat_gdp_main")
 
-dat_oecd_pdb_ind <- load_dat("dat_oecd_pdb_ind") 
-
-dat_gva_ind <- load_dat("dat_gva_ind") 
+dat_gva_ind_comb <- load_dat("dat_gva_ind_comb")
 
 geos <- rev(c(
   "Suomi"         = "FI",
@@ -56,18 +55,38 @@ ja
 Toimialoille hintatasotiedot ovat [GGDC Productivity
 level](https://www.rug.nl/ggdc/productivity/pld/) tietokannasta.
 
+OECD:n tietokanta päivittyy kuitenkin selvästi Eurostatia hitaammin,
+joten tässä käytetään yhdistettyä aineistoa: EU- ja ETA-maiden tiedot
+ovat Eurostatin kansantalouden tilinpidosta (`nama_10_a10`,
+`nama_10_a10_e`, `nama_10_gdp` ja `nama_10_pc`) ja muiden maiden (US,
+JP, UK) OECD:ltä. Toimialat ovat NACE:n A\*10-tasolla, ja OECD:n
+yrityssektori `BTNXL` (toimialat B–N pl. L) on laskettu Eurostatin
+toimialoista edellisen vuoden hintaisten sarjojen kautta, koska
+kiinteähintaisia sarjoja ei voi laskea yhteen. Ostovoimapariteetit ovat
+OECD:n omia. `source`-sarake kertoo, kummasta lähteestä kunkin maan
+tiedot ovat. Pelkkään OECD:n aineistoon perustuva versio on
+`main_oecd.qmd`.
+
+Työtuntien osalta lähteet poikkeavat toisistaan kymmenellä maalla, mikä
+siirtää työn tuottavuuden **tasoa** mutta ei juuri kasvuvauhtia. Ks.
+`tyotunnit.qmd`.
+
+Taulut ovat `dat_gdp_main` (koko talous) ja `dat_gva_ind_comb`
+(toimialat).
+
 ## BKT:n kasvu
 
 Näytä koodi
 
 ``` r
+
 # OECD koodit:
 # 
 # V Käypähintainen
 # 
 # LR perusvuosi 2020 (lisäksi L, jossa perusvuosi vaihteleva).
 
-dat_oecd_pdb_main |> 
+dat_gdp_main |> 
   filter(time >= "1995-01-01") |> 
   filter_recode(
     geo = geos,
@@ -88,8 +107,8 @@ dat_oecd_pdb_main |>
   the_title_blank("xyl") +
   labs(
     title = "BKT per capita",
-    subtitle = "Indeksi, 2007 = 100",
-    caption = "Lähde: OECD, Tuottavuuslautakunta"
+    subtitle = "Indeksi, 2007 = 100 (log-asteikko)",
+    caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta"
   )
 ```
 
@@ -100,7 +119,8 @@ dat_oecd_pdb_main |>
 Näytä koodi
 
 ``` r
-dat_oecd_pdb_main |> 
+
+dat_gdp_main |> 
   filter(time >= "1995-01-01") |> 
   filter_recode(
     geo = geos,
@@ -122,8 +142,8 @@ dat_oecd_pdb_main |>
   the_title_blank("xyl") +
   labs(
     title = "BKT per capita",
-    subtitle = "Indeksi, 2007 = 100",
-    caption = "Lähde: OECD, Tuottavuuslautakunta"
+    subtitle = "Indeksi, 2007 = 100 (log-asteikko)",
+    caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta"
   )
 ```
 
@@ -138,7 +158,8 @@ toimialoilla.
 Näytä koodi
 
 ``` r
-dat_gva_ind |> 
+
+dat_gva_ind_comb |> 
   filter(time >= "1995-01-01") |> 
   filter_recode(
     measure = c("GVAHRS"),
@@ -161,8 +182,8 @@ dat_gva_ind |>
   the_title_blank("xyl") +
   labs(
     title = "Työn tuottavuus, arvonlisä / työtunnit",
-    subtitle = "Indeksi, 2007 = 100",
-    caption = "Lähde: OECD, Tuottavuuslautakunta"
+    subtitle = "Indeksi, 2007 = 100 (log-asteikko)",
+    caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta"
   )
 ```
 
@@ -176,7 +197,8 @@ ongelmia. Kts. esim. Tuottavuuslautakunta (2019).
 Näytä koodi
 
 ``` r
-dat_gva_ind |> 
+
+dat_gva_ind_comb |> 
   filter(time >= "1995-01-01") |> 
   filter_recode(
     measure = c("GVAHRS"),
@@ -199,8 +221,8 @@ dat_gva_ind |>
   the_title_blank("xyl") +
   labs(
     title = "Työn tuottavuus, arvonlisä / työtunnit",
-    subtitle = "Indeksi, 2007 = 100",
-    caption = "Lähde: OECD, Tuottavuuslautakunta"
+    subtitle = "Indeksi, 2007 = 100 (log-asteikko)",
+    caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta"
   )
 ```
 
@@ -211,7 +233,8 @@ dat_gva_ind |>
 Näytä koodi
 
 ``` r
-dat_gva_ind|> 
+
+dat_gva_ind_comb|> 
   filter(time >= "1995-01-01") |> 
   filter_recode(
     measure = c("GVAHRS"),
@@ -234,8 +257,8 @@ dat_gva_ind|>
   the_title_blank("xyl") +
   labs(
     title = "Työn tuottavuus, arvonlisä / työtunnit",
-    subtitle = "Indeksi, 2007 = 100",
-    caption = "Lähde: OECD, Tuottavuuslautakunta"
+    subtitle = "Indeksi, 2007 = 100 (log-asteikko)",
+    caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta"
   )
 ```
 
@@ -246,7 +269,8 @@ dat_gva_ind|>
 Näytä koodi
 
 ``` r
-dat_gva_ind |> 
+
+dat_gva_ind_comb |> 
   filter(time >= "1995-01-01") |> 
   filter_recode(
     measure = c("GVA"),
@@ -261,12 +285,11 @@ dat_gva_ind |>
   facet_wrap(~ geo, nrow = 1) +
   geom_line() +
   scale_x_date(date_labels = "%y") +
-  scale_y_log10(breaks = y_log_breaks) +
   the_title_blank("xyl") +
   labs(
     title = "Osuus arvonlisäyksestä",
     subtitle = "%",
-    caption = "Lähde: OECD, Tuottavuuslautakunta"
+    caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta"
   ) 
 ```
 
@@ -275,7 +298,8 @@ dat_gva_ind |>
 Näytä koodi
 
 ``` r
-dat_gva_ind |> 
+
+dat_gva_ind_comb |> 
   filter(time >= "1995-01-01") |> 
   filter_recode(
     measure = c("GVA"),
@@ -296,12 +320,11 @@ dat_gva_ind |>
   facet_wrap(~ geo, nrow = 1) +
   geom_line() +
   scale_x_date(date_labels = "%y") +
-  scale_y_log10(breaks = y_log_breaks) +
   the_title_blank("xyl") +
   labs(
     title = "Osuus arvonlisäyksestä",
     subtitle = "%",
-    caption = "Lähde: OECD, Tuottavuuslautakunta"
+    caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta"
   ) 
 ```
 
@@ -313,7 +336,8 @@ Teollisuus sisältää vain tehdasteollisuuden.
 Näytä koodi
 
 ``` r
-dat_gva_ind |> 
+
+dat_gva_ind_comb |> 
   filter(time >= "1995-01-01") |> 
   filter_recode(
     measure = c("GVA", "GVAHRS"),
@@ -338,12 +362,11 @@ activity = c("Teollisuus" = "BTE", "Rakentaminen" = "F","Yksityiset palvelut" = 
   facet_wrap(~ geo, nrow = 1) +
   geom_line() +
   scale_x_date(date_labels = "%y") +
-  scale_y_log10(breaks = y_log_breaks) +
   the_title_blank("xyl") +
   labs(
     title = "Osuus työtunneista",
     subtitle = "%",
-    caption = "Lähde: OECD, Tuottavuuslautakunta"
+    caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta"
   ) 
 ```
 
@@ -357,7 +380,8 @@ maissa on eri hintasot ja myös valuuttakurssit vaihtelevat paljon.
 Näytä koodi
 
 ``` r
-dat_oecd_pdb_main |> 
+
+dat_gdp_main |> 
   filter(time >= "1995-01-01") |> 
   filter_recode(
     measure = c("GDPPOP"),
@@ -378,8 +402,8 @@ dat_oecd_pdb_main |>
   the_title_blank("xyl") +
   labs(
     title = "BKT suhteessa väestöön",
-    subtitle = "Vuoden 2020 $ hinnoin ostovoimakorjattuna",
-    caption = "Lähde: OECD, Tuottavuuslautakunta"
+    subtitle = "Vuoden 2020 $ hinnoin ostovoimakorjattuna (log-asteikko)",
+    caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta"
   )
 ```
 
@@ -388,6 +412,7 @@ dat_oecd_pdb_main |>
 Näytä koodi
 
 ``` r
+
 # ggptt::ggsave_ppt_half("bkt_capita", plot = last_plot() filter(p@data, geo != "Tanska") +theme_vm() +the_title_blank("xyl"))
 
 # last_plot()$data |> filter(geo != "muut")  |> select(geo, time, values) |> spread(geo, values) |> conc()
@@ -400,12 +425,14 @@ Perusvuosi 2020
 Näytä koodi
 
 ``` r
-dat_oecd_pdb_main |> 
+
+dat_gdp_main |> 
   filter(time >= "1995-01-01") |> 
   filter_recode(
     measure = c("GDPPOP"),
     activity = c("Koko talous" = "_T"),
-    price_base = c("LR"),        # 
+    price_base = c("LR"), 
+    unit_measure = c("XDC_PS", "USD_PPP_PS"),
     conversion_type = c(MP = "_Z","PPP")
   ) |> 
   select(-unit_measure,  -var_id) |> 
@@ -428,8 +455,8 @@ dat_oecd_pdb_main |>
   the_title_blank("xyl") +
   labs(
     title = "BKT per capita kiintein hinnoin",
-    subtitle = "Vuoden 2020 USD",
-    caption = "Lähde: OECD, Tuottavuuslautakunta"
+    subtitle = "Vuoden 2020 USD (log-asteikko)",
+    caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta"
   )
 ```
 
@@ -440,12 +467,14 @@ dat_oecd_pdb_main |>
 Näytä koodi
 
 ``` r
-dat_oecd_pdb_main |> 
+
+dat_gdp_main |> 
   filter(time >= "1995-01-01") |> 
   filter_recode(
      measure = c("GDPPOP"),
     activity = c("Koko talous" = "_T"),
-    price_base = c("V"),        # 
+    price_base = c("V"),   
+    unit_measure = c("XDC_PS", "USD_PPP_PS"), 
     conversion_type = c(MP = "_Z","PPP")
   ) |> 
   select(-unit_measure,  -var_id) |> 
@@ -470,8 +499,8 @@ dat_oecd_pdb_main |>
   the_title_blank("xyl") +
   labs(
     title = "BKT per capita nimellisin hinnoin",
-    subtitle = "Vuoden 2020 USD",
-    caption = "Lähde: OECD, Tuottavuuslautakunta"
+    subtitle = "Vuoden 2020 USD (log-asteikko)",
+    caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta"
   )
 ```
 
@@ -492,17 +521,26 @@ näin?
 Näytä koodi
 
 ``` r
-dat_oecd_pdb_main |> 
+
+dat_gdp_main |> 
   filter(time >= "1995-01-01") |> 
   filter_recode(
     geo = geos,
-    measure = c("Työn tuottavuus" = "GVAHRS", "Tunnit per capita" = "HRSPOP"),
+    measure = c("GDP", "HRS", "HRSPOP", "EMP", "POP", "WAP"),
     activity = c("Koko talous" = "_T"),
-    unit_measure = c("USD_PPP_H", "H_PS"),
+    unit_measure = c("USD_PPP", "H", "H_PS", "PS"),
     price_base = c("LR", "_Z"),        
     conversion_type = c("PPP", "_Z")
   ) |> 
-  select(-unit_measure) |> 
+  select(time, geo, measure, values) |> 
+  pivot_wider(names_from = "measure", values_from = "values") |> 
+  mutate(
+    time = time,
+    geo = geo,
+    "BKT per työtunnit" = GDP / HRS,
+    "TYötunnit per väestö" = HRS / POP,
+    .keep = "none") |> 
+  pivot_longer(!c("time", "geo"), names_to = "measure", values_to = "values") |> 
   ggplot(aes(time, values, colour = geo, linewidth = geo)) +
   facet_wrap(~measure, scales = "free") +
   geom_line() +
@@ -513,8 +551,8 @@ dat_oecd_pdb_main |>
   the_title_blank("xyl") +
   labs(
     title = "Työn tuottavuus ja työtunnit",
-    subtitle = "Indeksi, 2007 = 100",
-    caption = "Lähde: OECD, Tuottavuuslautakunta"
+    subtitle = "Indeksi, 2007 = 100 (log-asteikko)",
+    caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta"
   )
 ```
 
@@ -532,7 +570,8 @@ ja tukipalkkiot lasketaan mukaan jo arvonlisätasolla.
 Näytä koodi
 
 ``` r
-dat_oecd_pdb_main |> 
+
+dat_gdp_main |> 
   filter(time >= "1995-01-01") |> 
   filter(var_id %in% c("GVAHRS-USD_PPP_H-LR-PPP", 
                        "GDP-USD_PPP-LR-PPP", 
@@ -564,8 +603,8 @@ dat_oecd_pdb_main |>
   the_title_blank("xyl") +
   labs(
     title = "BKT ja arvonlisä työtuntia kohden",
-    subtitle = "Osvoimakorjattu 2020 $",
-    caption = "Lähde: OECD, Tuottavuuslautakunta"
+    subtitle = "Osvoimakorjattu 2020 $ (log-asteikko)",
+    caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta"
   )
 ```
 
@@ -574,7 +613,8 @@ dat_oecd_pdb_main |>
 Näytä koodi
 
 ``` r
-dat_oecd_pdb_main |> 
+
+dat_gdp_main |> 
   filter(time >= "1995-01-01") |> 
   filter_recode(
     geo = geos,
@@ -592,8 +632,8 @@ dat_oecd_pdb_main |>
   the_title_blank("xyl") +
   labs(
     title = "BKT ja arvonlisä",
-    subtitle = "Osvoimakorjattu 2020 $",
-    caption = "Lähde: OECD, Tuottavuuslautakunta"
+    subtitle = "Osvoimakorjattu 2020 $ (log-asteikko)",
+    caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta"
   ) +
   geom_hline(yintercept = 0)
 ```
@@ -618,7 +658,8 @@ palvelut) sekä pienet palvelualat (R, S, T).
 Näytä koodi
 
 ``` r
-dat_oecd_pdb_main |> 
+
+dat_gdp_main |> 
   filter(time >= "1995-01-01") |> 
   filter_recode(
     measure = c("GVAHRS"),
@@ -642,8 +683,8 @@ dat_oecd_pdb_main |>
   the_title_blank("xyl") +
   labs(
     title = "Arvonlisä / työtunnit",
-    subtitle = "2020 $",
-    caption = "Lähde: OECD, Tuottavuuslautakunta"
+    subtitle = "2020 $ (log-asteikko)",
+    caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta"
   ) 
 ```
 
@@ -664,14 +705,18 @@ GGDC:n PPP tiedoilla laskettuna.
 Sarjoissa kuuluukin olla pieni ero, koska OECD:n perusvuosi on 2020 ja
 GGDC:n 2017. Tarkastelluilla mailla erot selittyvät juuri perusvuodella.
 
+Molemmat sarjat tulevat nyt samasta yhdistetystä volyymiaineistosta,
+joten ero on puhtaasti hintatasokorjauksen lähteestä ja perusvuodesta.
+
 Näytä koodi
 
 ``` r
-# 
-# dat_gva_ind |> str()
-# dat_oecd_pdb_main |> str()
 
-dat1 <- dat_oecd_pdb_main |> 
+# 
+# dat_gva_ind_comb |> str()
+# dat_gdp_main |> str()
+
+dat1 <- dat_gdp_main |> 
   filter(time >= "1995-01-01") |> 
   filter_recode(
     geo = geos,
@@ -683,7 +728,7 @@ dat1 <- dat_oecd_pdb_main |>
   select(time, geo, values) |> 
   mutate(ppp_source = "oecd")
   
-dat2 <- dat_gva_ind |> 
+dat2 <- dat_gva_ind_comb |> 
   filter(time >= "1995-01-01") |> 
   filter_recode(
     geo = geos,
@@ -703,7 +748,7 @@ bind_rows(dat1, dat2) |>
   the_title_blank("xyl") +
   the_legend_bot() +
   labs(title = "Bruttoarvonlisä koko taloudessa",
-       subtitle = "Mrd. PPP dollaria 2020 tai 2017 hinnoin")
+       subtitle = "Mrd. PPP dollaria 2020 tai 2017 hinnoin (log-asteikko)")
 ```
 
 ![](main_files/figure-html/unnamed-chunk-16-1.png)
@@ -715,7 +760,8 @@ bind_rows(dat1, dat2) |>
 Näytä koodi
 
 ``` r
-dat_gva_ind|> 
+
+dat_gva_ind_comb|> 
   filter(time >= "1995-01-01") |> 
   filter_recode(
     measure = c("GVAHRS"),
@@ -738,7 +784,7 @@ dat_gva_ind|>
   labs(
     title = "Arvonlisä / työtunnit",
     subtitle = "Vuoden 2017 $, ostovoimakorjattuna, logaritminen asteikko, log-asteikko",
-    caption = "Lähde: OECD, GGDC, Tuottavuuslautakunta"
+    caption = "Lähde: Eurostat, OECD, GGDC, Tuottavuuslautakunta"
   )
 ```
 
@@ -749,7 +795,8 @@ dat_gva_ind|>
 Näytä koodi
 
 ``` r
-dat_gva_ind|> 
+
+dat_gva_ind_comb|> 
   filter(time >= "1995-01-01") |> 
   filter_recode(
     measure = c("GVAHRS"),
@@ -771,8 +818,8 @@ dat_gva_ind|>
   the_title_blank("xyl") +
   labs(
     title = "Arvonlisä / työtunnit",
-    subtitle = "2017 $, valuuttakurssilla ja ostovoimakorjattuna",
-    caption = "Lähde: OECD, Tuottavuuslautakunta"
+    subtitle = "2017 $, valuuttakurssilla ja ostovoimakorjattuna (log-asteikko)",
+    caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta"
   )
 ```
 
@@ -781,7 +828,8 @@ dat_gva_ind|>
 Näytä koodi
 
 ``` r
-dat_gva_ind|> 
+
+dat_gva_ind_comb|> 
   filter(time >= "1995-01-01") |> 
   filter_recode(
     measure = c("GVAHRS"),
@@ -803,8 +851,8 @@ dat_gva_ind|>
   the_title_blank("xyl") +
   labs(
     title = "Arvonlisä / työtunnit",
-    subtitle = "2017 $, valuuttakurssilla ja ostovoimakorjattuna",
-    caption = "Lähde: OECD, Tuottavuuslautakunta"
+    subtitle = "2017 $, valuuttakurssilla ja ostovoimakorjattuna (log-asteikko)",
+    caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta"
   ) 
 ```
 
@@ -813,7 +861,8 @@ dat_gva_ind|>
 Näytä koodi
 
 ``` r
-dat_gva_ind|> 
+
+dat_gva_ind_comb|> 
   filter(time >= "1995-01-01") |> 
   filter_recode(
     measure = c("GVAHRS"),
@@ -835,8 +884,8 @@ dat_gva_ind|>
   the_title_blank("xyl") +
   labs(
     title = "Arvonlisä / työtunnit",
-    subtitle = "2017 $ ostovoimakorjattuna",
-    caption = "Lähde: OECD, Tuottavuuslautakunta"
+    subtitle = "2017 $ ostovoimakorjattuna (log-asteikko)",
+    caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta"
   ) 
 ```
 
@@ -845,7 +894,8 @@ dat_gva_ind|>
 Näytä koodi
 
 ``` r
-dat_gva_ind|> 
+
+dat_gva_ind_comb|> 
   filter(time >= "1995-01-01") |> 
   filter_recode(
     measure = c("GVAHRS"),
@@ -867,8 +917,8 @@ dat_gva_ind|>
   the_title_blank("xyl") +
   labs(
     title = "Arvonlisä / työtunnit",
-    subtitle = "2017 $ ostovoimakorjattuna",
-    caption = "Lähde: OECD, Tuottavuuslautakunta"
+    subtitle = "2017 $ ostovoimakorjattuna (log-asteikko)",
+    caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta"
   ) 
 ```
 

@@ -2,11 +2,12 @@
 
 KESKEN
 
-Päivitetty: 2026-05-26
+Päivitetty: 2026-09-01
 
 Näytä koodi
 
 ``` r
+
 if (interactive()) devtools::load_all(".") else library(fiprod) 
 
 library(tidyverse)
@@ -17,11 +18,12 @@ library(pttdatahaku)
 set_gg(theme_fpb())
 
 
-dat_oecd_pdb_main <- load_dat("dat_oecd_pdb_main") 
+dat_gva_ind_comb <- load_dat("dat_gva_ind_comb")
 
-dat_oecd_pdb_ind <- load_dat("dat_oecd_pdb_ind") 
-
-dat_gva_ind <- load_dat("dat_gva_ind") 
+# Eurostat is only fetched at the NACE A*10 level, where public administration,
+# education and health are one industry (OTQ). The chart that splits them into
+# O, P and Q therefore still uses the OECD only table.
+dat_gva_ind <- load_dat("dat_gva_ind")
 
 geos <- rev(c(
   "Suomi"         = "FI",
@@ -48,10 +50,19 @@ tuottavuuden. Ne sisältävät, varsinkin terveyspalvelut, myös yksitysen
 sektorin tuotantoa. Pelkällä sektorijaolla ei ole saatavilla kattavaa
 aineistoa maavertailua varten.
 
+Tiedot ovat yhdistetystä aineistosta (`dat_gva_ind_comb`): EU- ja
+ETA-maat Eurostatista, muut OECD:ltä. Eurostatin tiedot haetaan NACE:n
+A\*10-tasolla, jossa julkinen hallinto, koulutus sekä terveys- ja
+sosiaalipalvelut ovat yksi toimiala (`OTQ`). Toimialat erikseen näyttävä
+kuvio käyttää siksi edelleen pelkkää OECD:n aineistoa (`dat_gva_ind`).
+Pelkkään OECD:n aineistoon perustuva versio koko dokumentista on
+`public_oecd.qmd`.
+
 Näytä koodi
 
 ``` r
-dat_gva_ind |> 
+
+dat_gva_ind_comb |> 
   # filter(time >= "1995-01-01") |> 
   filter_recode(
     measure = c("GVAHRS"),
@@ -72,7 +83,7 @@ dat_gva_ind |>
   labs(
     title = "Työn tuottavuus, arvonlisä / työtunnit",
     subtitle = "Indeksi, 2000 = 100",
-    caption = "Lähde: OECD, Tuottavuuslautakunta"
+    caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta"
   )
 ```
 
@@ -81,6 +92,7 @@ dat_gva_ind |>
 Näytä koodi
 
 ``` r
+
 dat_gva_ind |> 
   # filter(time >= "1995-01-01") |> 
   filter_recode(
@@ -103,7 +115,7 @@ dat_gva_ind |>
   labs(
     title = "Työn tuottavuus, arvonlisä / työtunnit",
     subtitle = "Indeksi, 2000 = 100",
-    caption = "Lähde: OECD, Tuottavuuslautakunta"
+    caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta"
   )
 ```
 
@@ -112,7 +124,8 @@ dat_gva_ind |>
 Näytä koodi
 
 ``` r
-dat_gva_ind |> 
+
+dat_gva_ind_comb |> 
   filter(time >= "1995-01-01") |> 
   filter_recode(
     measure = c("GVA", "HRS"),
@@ -131,7 +144,7 @@ dat_gva_ind |>
   labs(
     title = "Osuus työtunneista",
     subtitle = "%",
-    caption = "Lähde: OECD, Tuottavuuslautakunta"
+    caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta"
   ) 
 ```
 
@@ -140,7 +153,8 @@ dat_gva_ind |>
 Näytä koodi
 
 ``` r
-kk <- dat_gva_ind |> 
+
+kk <- dat_gva_ind_comb |> 
   filter(time >= "1995-01-01") |> 
   filter_recode(
     measure = c("GVA", "HRS"),
@@ -149,7 +163,7 @@ kk <- dat_gva_ind |>
   ) |> 
  pivot_wider(names_from = c(measure, vars), values_from = values, names_sep = "__") |> 
  select(-HRS__fp_2020_lc) |> 
- mutate(GVA__pp = statfitools::pp(GVA__cp, GVA__fp_2020_lc, time), .by = c(geo, activity)) |> 
+ mutate(GVA__pp = prev_year_prices(GVA__cp, GVA__fp_2020_lc, time), .by = c(geo, activity)) |> 
  pivot_wider(
     names_from = activity,
     values_from = where(is.numeric),
@@ -160,7 +174,7 @@ kk <- dat_gva_ind |>
     HRS__cp___TOTex = HRS__cp___TOT - HRS__cp___OTQ,
     GVA__pp___TOTex = GVA__pp___TOT - GVA__pp___OTQ
   ) |> 
-  mutate(GVA__fp_2020_lc___TOTex = statfitools::fp(GVA__cp___TOTex, GVA__pp___TOTex, year(time), 2020), .by = geo) |> 
+  mutate(GVA__fp_2020_lc___TOTex = fixed_prices(GVA__cp___TOTex, GVA__pp___TOTex, time, 2020), .by = geo) |> 
   # select(-contains("__pp")) |> 
   pivot_longer(cols = where(is.numeric), names_to = c("vars", "activity"), names_sep = "___", values_to = "values", names_transform = as_factor) |> 
   pivot_wider(names_from = "vars", values_from = "values") |> 
@@ -192,6 +206,7 @@ kk |>
 Näytä koodi
 
 ``` r
+
 kk |> 
   filter_recode(
     measure = "GVAHRS",
@@ -213,6 +228,7 @@ kk |>
 Näytä koodi
 
 ``` r
+
 kk |> 
   filter_recode(
     measure = "GVAHRS",

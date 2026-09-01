@@ -11,7 +11,7 @@ after installation, the file will be available under
 save_dat(
   x,
   filename = deparse(substitute(x)),
-  dir = "inst/extdata",
+  dir = .pkg_extdata_dir(),
   overwrite = FALSE
 )
 ```
@@ -30,7 +30,10 @@ save_dat(
 - dir:
 
   Directory where to write during development. Defaults to
-  `"inst/extdata"`. The directory is created if it does not exist.
+  `inst/extdata` under the package root, found by walking up from the
+  working directory to `DESCRIPTION`, so that writing from a
+  subdirectory such as `vignettes/` still lands in the right place. The
+  directory is created if it does not exist.
 
 - overwrite:
 

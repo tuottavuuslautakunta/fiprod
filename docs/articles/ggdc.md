@@ -3,6 +3,7 @@
 Näytä koodi
 
 ``` r
+
 # library(fiprod)
 
 if (interactive()) devtools::load_all(".") else library(fiprod) 
@@ -22,6 +23,7 @@ geos <- c("FI", "SE", "US", "EA20", "DK", "DE")
 Näytä koodi
 
 ``` r
+
 dat_ggdc_23 |> 
   filter_recode(
     geo = "FI",
@@ -37,6 +39,7 @@ dat_ggdc_23 |>
 Näytä koodi
 
 ``` r
+
 dat_ggdc_23 |> 
   filter_recode(
     geo = c("FI", "US", "DE"),
@@ -53,6 +56,7 @@ dat_ggdc_23 |>
 Näytä koodi
 
 ``` r
+
 dat_ggdc_23 |> 
   filter_recode(vars = c("va", "ppp_va"),
                 geo = c("FI", "DE", "PT")) |> 

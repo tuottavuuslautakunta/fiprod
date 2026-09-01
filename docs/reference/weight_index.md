@@ -88,6 +88,7 @@ weighting.
 ## Examples
 
 ``` r
+
 x <- c(1, 2, 1)
 geo <- c("FI", "DE", "SE")
 w_df <- tibble(geo_base = c("FI", "FI", "FI", "DE", "DE", "DE", "SE", "SE", "SE"),

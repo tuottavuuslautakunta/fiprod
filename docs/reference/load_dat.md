@@ -10,7 +10,7 @@ under the package root (found via `DESCRIPTION`).
 ## Usage
 
 ``` r
-load_dat(filename, package = NULL, must_work = TRUE)
+load_dat(filename, package = NULL, must_work = TRUE, vintage = NULL)
 ```
 
 ## Arguments
@@ -28,6 +28,14 @@ load_dat(filename, package = NULL, must_work = TRUE)
 - must_work:
 
   If `TRUE` (default), error if the file cannot be located.
+
+- vintage:
+
+  If non `NULL`, read a frozen copy of the data instead of the live
+  file. The copy is written the first time a vintage is asked for, as
+  `v<vintage>_<filename>.parquet` next to the other data, and read back
+  unchanged after that, so a report keeps the numbers it was written
+  with even when the underlying data is updated.
 
 ## Value
 

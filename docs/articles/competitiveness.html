@@ -36,6 +36,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/board_2026.html">Tuottavuuslautakunnan raportti 2026</a></li>
+    <li><a class="dropdown-item" href="../articles/board_2026_en.html">Finnish Productivity Board report 2026</a></li>
     <li><a class="dropdown-item" href="../articles/competitiveness.html">Kustannuskilpailukyky</a></li>
     <li><a class="dropdown-item" href="../articles/main.html">Talouskasvu ja tuottavuus</a></li>
     <li><a class="dropdown-item" href="../articles/main_oecd.html">Talouskasvu ja tuottavuus (vain OECD)</a></li>
@@ -73,7 +74,7 @@
 
 
 
-    <p>Päivitetty: 2026-08-28</p>
+    <p>Päivitetty: 2026-09-01</p>
 <p>Hintakilpailukyvyn mittarit ovat peräisin vanhasta <a href="https://github.com/pttry/ficomp" class="external-link">ficomp</a>-paketista, jolla tuottavuuslautakunnan raportin kilpailukykyluku on aiemmin tehty. Ydin on suhteellinen yksikkötyökustannus: paljonko työvoimakustannus tuotettua yksikköä kohden on noussut Suomessa verrattuna verrokkimaihin.</p>
 <p>Laskenta on <code>data-raw/get_eurostat_ulc.R</code>- ja <code>data-raw/data_main.R</code>-skripteissä ja tulos taulussa <code>dat_ulc_comp</code>. Verrokkijoukko <code>geos_comp</code> on ficompin 17 maata ja painot Euroopan komission (ECFIN) kauppapainot. Näistä 15 tulee Eurostatista; Yhdysvallat ja Japani tulevat OECD:n tuottavuustietokannasta, jossa on yksikkötyökustannus ja sen osatekijät mutta ei vientiä eikä tuontia. Niillä ei siksi ole vaihtosuhdekorjausta eikä yrittäjäkorjaamatonta mittaria, ja ne mittarit painotetaan 15 Eurostat-maan kesken. Taulun <code>peers</code>-sarake kertoo, kumpaa joukkoa vasten kukin suhdeluku on laskettu.</p>
 <p>OECD:n vuositiedot Yhdysvalloille ja Japanille päättyvät vuoden tai kaksi muita aiemmin. Ne jatketaan OECD:n neljännesvuositietojen kasvuvauhdilla, jolloin suhdeluku ulottuu viimeiseen vuoteen kaikilla mailla — muuten viimeinen vuosi katoaisi koko verrokkijoukolta. Jatketut havainnot on merkitty <code>extended</code>- sarakkeeseen ja näkyvät alla pisteinä.</p>
