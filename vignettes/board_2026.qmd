@@ -17,6 +17,11 @@ Raportin kuviot. Otsikot, alaotsikot ja lähdetiedot ovat kuvion yläpuolella
 tekstinä, eivät kuviossa, ja jokainen kuvio tallentuu myös png-tiedostoksi
 julkaisuvuoden mukaiseen kansioon.
 
+Englanninkielinen versio samoista kuvioista on
+[Finnish Productivity Board report 2026](board_2026_en.qmd). Sen kuviot
+tallentuvat kansioon `figures/en/<vuosi>/`, joten kieliversiot eivät kirjoita
+toistensa tiedostojen päälle.
+
 ## Aineisto lyhyesti
 
 Luvut tulevat paketin yhdistetystä aineistosta: EU- ja ETA-maat Eurostatin
@@ -106,6 +111,11 @@ pick <- function(vars_keep, col = "rel", geo_keep = "FI") {
 }
 
 sub_ind <- paste0("Indeksi, keskiarvo ", min(mean_range), "–", max(mean_range), " = 100")
+
+# Julkisen sektorin tuottavuusvertailun jakso: kasvuvauhtien keskiarvo
+# lasketaan näiltä vuosilta
+public_period <- 1998:2023
+public_period_lab <- paste0(min(public_period), "–", max(public_period))
 
 ```
 
@@ -429,3 +439,128 @@ tarkoittaa valuutan heikkenemistä. Kuviossa se on käännetty ympäri
 (100² / indeksi), jolloin nousu on valuutan vahvistuminen ja siten
 yksikkötyökustannuksen nousu yhteisessä valuutassa. Palkansaajakorvausten nousu
 nostaa yksikkötyökustannusta, tuottavuuden nousu laskee sitä.
+
+# Julkisen sektorin tuottavuus
+
+Julkinen sektori on tässä kolme toimialaa yhdessä: julkinen hallinto, koulutus
+sekä terveys- ja sosiaalipalvelut (NACE O–Q). Ne sisältävät, varsinkin
+terveyspalvelut, myös yksityisen sektorin tuotantoa, sillä pelkällä
+sektorijaolla ei ole saatavilla kattavaa maavertailuaineistoa. Toimialat
+erikseen ja pelkkään OECD:n aineistoon perustuva versio ovat
+[Julkisen sektorin tuottavuus](public.qmd) -artikkelissa.
+
+## Julkisen sektorin tuottavuus
+
+Työn tuottavuus julkisella sektorilla, arvonlisä / työtunnit vuoden 2020 $
+hinnoin ostovoimakorjattuna. Indeksi, 2000 = 100. Lähde: Eurostat, OECD,
+Tuottavuuslautakunta.
+
+```{r}
+#| label: fig-tuottavuus-julkinen
+
+p <- dat_gva_ind_comb |>
+  filter(time >= "1995-01-01") |> 
+  filter_recode(
+    measure = c("GVAHRS"),
+    activity = c("Julkinen" = "OTQ"),
+    vars = c("fp_2020_ppp17")
+  ) |> 
+  mutate(values = rebase(values, time, baseyear = 2000), .by = where(is.factor)) |> 
+  filter(geo != "DK") |> 
+  filter_recode(
+    geo = geos
+  ) |> 
+  ggplot(aes(time, values, colour = geo, linewidth = geo)) +
+  geom_line() +
+  scale_colour_manual(values = geos_colour) +
+  scale_linewidth_manual(values = geos_width) +
+  guides(colour = guide_legend(reverse = TRUE), linewidth = guide_legend(reverse = TRUE)) +
+  the_title_blank("xyl")
+
+save_fig(p, "tuottavuus-julkinen")
+
+```
+
+Eurostatin tiedot haetaan NACE:n A\*10-tasolla, jossa julkinen hallinto,
+koulutus sekä terveys- ja sosiaalipalvelut ovat yksi toimiala (`OTQ`);
+OECD-mailla sama kokonaisuus on summattu toimialoista. Ostovoimakorjaus on
+toimialoittainen ja perustuu vuoden 2017 hintatasoon, joten kuviossa
+verrataan kasvua, ei tasoa.
+
+## Tuottavuuden kasvu julkisen sektorin kanssa ja ilman
+
+Työn tuottavuuden keskimääräinen vuosikasvu koko taloudessa, julkisella
+sektorilla ja ilman julkista sektoria sekä koko talouden ja ilman julkista
+sektoria laskettujen kasvuvauhtien erotus. Keskiarvo `r public_period_lab`, %.
+Lähde: Eurostat, OECD, Tuottavuuslautakunta.
+
+```{r}
+#| label: fig-tuottavuuskasvu-julkinen
+
+# Kiinteähintaiset sarjat eivät ole yhteenlaskettavia, joten julkinen sektori
+# vähennetään koko taloudesta edellisen vuoden hintaisten sarjojen kautta ja
+# erotus ketjutetaan uudelleen. Työtunnit ovat additiivisia, joten ne
+# vähennetään suoraan.
+pdat <- dat_gva_ind_comb |> 
+  filter(time >= "1995-01-01") |> 
+  filter_recode(
+    measure = c("GVA", "HRS"),
+    activity = c("TOT" = "_T", "OTQ"),
+    vars = c("cp", "fp_2020_lc")
+  ) |> 
+  pivot_wider(names_from = c(measure, vars), values_from = values, names_sep = "__") |> 
+  select(-HRS__fp_2020_lc) |> 
+  mutate(GVA__pp = prev_year_prices(GVA__cp, GVA__fp_2020_lc, time), .by = c(geo, activity)) |> 
+  pivot_wider(
+    names_from = activity,
+    values_from = where(is.numeric),
+    names_sep = "___"
+  ) |> 
+  mutate(
+    GVA__cp___TOTex = GVA__cp___TOT - GVA__cp___OTQ,
+    HRS__cp___TOTex = HRS__cp___TOT - HRS__cp___OTQ,
+    GVA__pp___TOTex = GVA__pp___TOT - GVA__pp___OTQ
+  ) |> 
+  mutate(GVA__fp_2020_lc___TOTex = fixed_prices(GVA__cp___TOTex, GVA__pp___TOTex, time, 2020), .by = geo) |> 
+  pivot_longer(cols = where(is.numeric), names_to = c("vars", "activity"), names_sep = "___",
+               values_to = "values", names_transform = as_factor) |> 
+  pivot_wider(names_from = "vars", values_from = "values") |> 
+  mutate(GVAHRS__fp_2020_lc = GVA__fp_2020_lc / HRS__cp) |> 
+  pivot_longer(cols = where(is.numeric), names_to = c("measure", "vars"), names_sep = "__",
+               values_to = "values", names_transform = as_factor)
+
+p <- pdat |> 
+  filter_recode(
+    measure = "GVAHRS",
+    vars = "fp_2020_lc",
+    geo = geos
+  ) |> 
+  mutate(values = pc(values, 1, time), .by = c(geo, activity)) |> 
+  pivot_wider(names_from = activity, values_from = values) |> 
+  mutate(diff = TOT - TOTex) |> 
+  pivot_longer(cols = where(is.numeric), names_to = "activity", values_to = "values",
+               names_transform = as_factor) |> 
+  filter_recode(
+    activity =
+      c("Koko talous" = "TOT",
+        "Julkinen" = "OTQ",
+        "Ilman julkista" = "TOTex",
+        "Erotus" = "diff")
+  ) |> 
+  filter(year(time) %in% public_period) |> 
+  summarise(values = mean(values), .by = c(geo, activity)) |> 
+  mutate(geo = fct_reorder(geo, values, .fun = max)) |> 
+  ggplot(aes(geo, values, fill = activity)) +
+  geom_col(position = "dodge") +
+  the_title_blank("xyl")
+
+save_fig(p, "tuottavuuskasvu-julkinen")
+
+```
+
+Erotus kertoo, kuinka paljon julkinen sektori on hidastanut (negatiivinen luku)
+tai nopeuttanut koko talouden tuottavuuden kasvua verrattuna talouteen, josta
+julkinen sektori on poistettu. Keskiarvo lasketaan ilman puuttuvien vuosien
+korjausta, joten maa jää kuviosta pois, jos yksikin jakson vuosi puuttuu.
+Ilman julkista sektoria oleva arvonlisäys on ketjutettu uudelleen vuoden 2020
+hintoihin omassa valuutassa; ks. [Talouskasvu ja tuottavuus](main.qmd).
