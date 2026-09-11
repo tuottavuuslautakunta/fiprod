@@ -97,7 +97,7 @@ kuvio19 <-
 # mallikuvioiden otsikot.
 
 luku5_tech <- c("Matala teknologia", "Keskimatala teknologia",
-                "Keskikorkea teknologia", "Korkean teknologia")
+                "Keskikorkea teknologia", "Korkea teknologia")
 
 kuvio20_time <-
   readxl::read_xlsx(luku5_file, sheet = "Kuvio 20", range = "C4:C33",

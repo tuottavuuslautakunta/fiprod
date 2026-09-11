@@ -52,7 +52,7 @@ library(pttdatahaku)
 
 
 set_gg(theme_fpb())
-
+options(OutDec = ",")
 
 y_log_breaks <- scales::breaks_pretty(n = 8)
 
@@ -629,6 +629,7 @@ p <- luku5("kuvio17") |>
   geom_hline(yintercept = 100, linewidth = 0.3) +
   geom_line() +
   the_title_blank("xyl") +
+  guides(colour = guide_legend(nrow = 2)) +
   the_legend_bot()
 
 save_fig(p, "kannattavuus-tyotunnit")
@@ -648,6 +649,7 @@ p <- luku5("kuvio18") |>
   ggplot(aes(time, values, colour = series)) +
   geom_hline(yintercept = 100, linewidth = 0.3) +
   geom_line() +
+  scale_y_continuous(n.breaks = 8) +
   the_title_blank("xyl") +
   the_legend_bot()
 
@@ -664,9 +666,13 @@ Tuottavuuden kehitys yrityssektorin tasolla ja yritysten tasolla.
 #| label: fig-tuottavuus-yritystaso
 
 p <- luku5("kuvio19") |>
+  mutate(series = fct_recode(series, "Talouden taso" = "Yrityssektorin taso")) |> 
   ggplot(aes(time, values, colour = series)) +
   geom_hline(yintercept = 0, linewidth = 0.3) +
   geom_line() +
+   geom_smooth(data = \(d) filter(d, series == "Yritysten taso"), 
+               method = "lm", se = FALSE,
+               linetype = "dashed") +
   the_title_blank("xyl") +
   the_legend_bot()
 
@@ -682,11 +688,27 @@ kautta. %-yksikköä, 1995 = 0. Lähde: Tuottavuuslautakunnan omat laskelmat.
 ```{r}
 #| label: fig-luova-tuho-teknologia
 
+df <- luku5("kuvio20")
+
+span <- max(tapply(df$values, df$panel, \(v) diff(range(v)))) * 1.05
+
+rajat <- df |>
+  group_by(panel, series) |>
+  reframe(time = min(time),
+          values = mean(range(values)) + c(-1, 1) * span / 2) 
+
+
 p <- luku5("kuvio20") |>
   ggplot(aes(time, values, colour = series)) +
-  facet_wrap(~ panel) +
+  facet_wrap(~ panel, scales = "free_y") +
+  scale_y_continuous(breaks = scales::breaks_width(10)) +
   geom_hline(yintercept = 0, linewidth = 0.3) +
   geom_line() +
+  ggh4x::facetted_pos_scales(
+    y = list(scale_y_continuous(limits = c(-60, 10)),
+             scale_y_continuous(limits = c(0, 70)))
+  )  +
+  # geom_blank(data = rajat) +
   the_title_blank("xyl") +
   the_legend_bot() +
   guides(colour = guide_legend(nrow = 2))
@@ -712,17 +734,28 @@ Tuottavuuslautakunnan omat laskelmat.
 # kutistettuina, ja oikea asteikko kertoo ne takaisin. Näin nolla on samalla
 # kohdalla molemmilla asteikoilla; mallikuviossa asteikot eivät ole nollassa
 # kohdakkain.
-k21_oikea <- c("Hajonnan muutos (oikea asteikko)",
-               "Hajonnan muutos, HP-tasoitettu (oikea ast.)")
+k21_oikea <- c("Hajonnan muutos (oikea asteikko)")
 k21_suhde <- 5
 
 p <- luku5("kuvio21") |>
+  separate_wider_delim(series, delim = ", ", names = c("series", "type"), 
+                       too_few = "align_start") |> 
+  mutate(series = as_factor(series),
+         series = fct_recode(series,
+           "Divergenssi-komponentti (vasen asteikko)" = "Divergenssi-komponentti",
+           "Hajonnan muutos (oikea asteikko)" = "Hajonnan muutos")) |> 
+
+  mutate(
+    type = if_else(are_na(type), "Alkuperäinen", "HP-tasoitettu"),
+    type = as_factor(type)) |>
   mutate(values = if_else(series %in% k21_oikea, values / k21_suhde, values)) |>
-  ggplot(aes(time, values, colour = series)) +
+  ggplot(aes(time, values, colour = series, linewidth = type)) +
   geom_hline(yintercept = 0, linewidth = 0.3) +
   geom_line() +
+  scale_linewidth_manual(values = c(0.5,2), guide = "none") +
   scale_y_continuous(
-    sec.axis = sec_axis(~ . * k21_suhde, breaks = scales::breaks_pretty(n = 6))
+    breaks = scales::breaks_pretty(n = 10),
+    sec.axis = sec_axis(~ . * k21_suhde, breaks = scales::breaks_pretty(n = 10))
   ) +
   the_title_blank("xyl") +
   the_legend_bot() +
