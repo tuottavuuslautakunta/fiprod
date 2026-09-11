@@ -118,6 +118,23 @@ sub_ind <- paste0("Indeksi, keskiarvo ", min(mean_range), "–", max(mean_range)
 public_period <- 1998:2023
 public_period_lab <- paste0(min(public_period), "–", max(public_period))
 
+# Luvun 5 kuviot
+#
+# Sarjat tulevat valmiina laskettuina Excelistä (data-raw/rap_2026/Luku5.xlsx),
+# joka luetaan skriptillä data-raw/read_luku5.R. Vintagea ei tarvita, koska
+# Excel on jo tämän raportin oma tiedosto eikä päivity rajapinnasta.
+dat_luku5_2026 <- load_dat("dat_luku5_2026")
+
+# Poimii yhden kuvion sarjat. droplevels() pudottaa muiden kuvioiden sarjat
+# pois, jotta selite ja värit tulevat vain tämän kuvion sarjoista.
+luku5 <- function(fig) {
+  droplevels(filter(dat_luku5_2026, figure == fig))
+}
+
+# Kuvion 17 sarjat on indeksoitu koko jakson keskiarvoon
+k17_range <- range(lubridate::year(luku5("kuvio17")$time))
+sub_ind_k17 <- paste0("Indeksi, keskiarvo ", k17_range[1], "–", k17_range[2], " = 100")
+
 ```
 
 # Tuottavuuskehitys
@@ -566,3 +583,155 @@ julkinen sektori on poistettu. Keskiarvo lasketaan ilman puuttuvien vuosien
 korjausta, joten maa jää kuviosta pois, jos yksikin jakson vuosi puuttuu.
 Ilman julkista sektoria oleva arvonlisäys on ketjutettu uudelleen vuoden 2020
 hintoihin omassa valuutassa; ks. [Talouskasvu ja tuottavuus](main.qmd).
+
+# Luvun 5 kuviot
+
+Luvun 5 sarjat eivät tule tilastorajapinnoista vaan valmiina laskettuina
+Excel-tiedostosta `data-raw/rap_2026/Luku5.xlsx`, jossa on yksi välilehti
+kuviota kohden ja jokaisella välilehdellä myös mallikuvio. Välilehdet luetaan
+yhdeksi pitkäksi taulukoksi skriptillä `data-raw/read_luku5.R`, joka pitää ajaa
+ennen tämän dokumentin kääntämistä.
+
+Mallikuvioista on otettu se, mitkä sarjat kuviossa ovat, sarjojen selitteet ja
+kuvion 20 paneelien otsikot. Muuten kuviot ovat samassa tyylissä kuin raportin
+muut kuviot: otsikko, alaotsikko ja lähde ovat tekstinä kuvion yläpuolella ja
+jokainen kuvio tallentuu myös png-tiedostoksi.
+
+## Työn tuottavuus ja reaalipalkat
+
+Työn tuottavuus ja reaalipalkat arvonlisäyksen hinnoin. Indeksi, 2000 = 100,
+neljännesvuosittain. Lähde: Tuottavuuslautakunnan omat laskelmat.
+
+```{r}
+#| label: fig-tuottavuus-reaalipalkat
+
+p <- luku5("kuvio16") |>
+  ggplot(aes(time, values, colour = series)) +
+  geom_line() +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "tuottavuus-reaalipalkat")
+
+```
+
+## Palkkatyön kannattavuus ja työtunnit
+
+Palkkatyön kannattavuussuhde ja palkansaajien tehdyt työtunnit suhteessa
+20-69-vuotiaisiin. `r sub_ind_k17`. Lähde: Kansantalouden tilinpito ja
+AMECO-tietokanta.
+
+```{r}
+#| label: fig-kannattavuus-tyotunnit
+
+p <- luku5("kuvio17") |>
+  ggplot(aes(time, values, colour = series)) +
+  geom_hline(yintercept = 100, linewidth = 0.3) +
+  geom_line() +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "kannattavuus-tyotunnit")
+
+```
+
+## Tutkimus- ja kehityspanostukset kokoluokittain
+
+Yritysten panostukset tutkimus- ja kehitystoimintaan tutkimus- ja
+kehityshenkilöstön työvuosina mitattuna. Indeksi, 2004 = 100. Lähde:
+Kansantalouden tilinpito.
+
+```{r}
+#| label: fig-tk-panostukset
+
+p <- luku5("kuvio18") |>
+  ggplot(aes(time, values, colour = series)) +
+  geom_hline(yintercept = 100, linewidth = 0.3) +
+  geom_line() +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "tk-panostukset")
+
+```
+
+## Tuottavuuden kehitys yrityssektorin ja yritysten tasolla
+
+Tuottavuuden kehitys yrityssektorin tasolla ja yritysten tasolla.
+%-yksikköä, 1995 = 0. Lähde: Tuottavuuslautakunnan omat laskelmat.
+
+```{r}
+#| label: fig-tuottavuus-yritystaso
+
+p <- luku5("kuvio19") |>
+  ggplot(aes(time, values, colour = series)) +
+  geom_hline(yintercept = 0, linewidth = 0.3) +
+  geom_line() +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "tuottavuus-yritystaso")
+
+```
+
+## Yritysten taso ja luova tuho teknologiatason mukaan
+
+Tuottavuuden kehitys teknologiatason mukaan, yritysten tasolla ja luovan tuhon
+kautta. %-yksikköä, 1995 = 0. Lähde: Tuottavuuslautakunnan omat laskelmat.
+
+```{r}
+#| label: fig-luova-tuho-teknologia
+
+p <- luku5("kuvio20") |>
+  ggplot(aes(time, values, colour = series)) +
+  facet_wrap(~ panel) +
+  geom_hline(yintercept = 0, linewidth = 0.3) +
+  geom_line() +
+  the_title_blank("xyl") +
+  the_legend_bot() +
+  guides(colour = guide_legend(nrow = 2))
+
+save_fig(p, "luova-tuho-teknologia")
+
+```
+
+Paneelien otsikot ja sarjojen selitteet ovat mallikuvioista. Paneeleilla on sama
+asteikko, koska molemmat ovat samaa yksikköä ja niiden suuruusluokkien vertailu
+on kuvion pointti; mallikuviot ovat kaksi erillistä kuviota omilla asteikoillaan.
+
+## Divergenssikomponentti ja hajonnan muutos
+
+Divergenssikomponentin vaikutus (vasen asteikko) ja tuottavuuden hajonnan
+muutos (oikea asteikko), havaitut ja HP-tasoitetut sarjat. Lähde:
+Tuottavuuslautakunnan omat laskelmat.
+
+```{r}
+#| label: fig-divergenssi-hajonta
+
+# Oikean asteikon sarjat piirretään vasemmalle asteikolle viidesosaan
+# kutistettuina, ja oikea asteikko kertoo ne takaisin. Näin nolla on samalla
+# kohdalla molemmilla asteikoilla; mallikuviossa asteikot eivät ole nollassa
+# kohdakkain.
+k21_oikea <- c("Hajonnan muutos (oikea asteikko)",
+               "Hajonnan muutos, HP-tasoitettu (oikea ast.)")
+k21_suhde <- 5
+
+p <- luku5("kuvio21") |>
+  mutate(values = if_else(series %in% k21_oikea, values / k21_suhde, values)) |>
+  ggplot(aes(time, values, colour = series)) +
+  geom_hline(yintercept = 0, linewidth = 0.3) +
+  geom_line() +
+  scale_y_continuous(
+    sec.axis = sec_axis(~ . * k21_suhde, breaks = scales::breaks_pretty(n = 6))
+  ) +
+  the_title_blank("xyl") +
+  the_legend_bot() +
+  # selitteet ovat pitkiä, joten yksi sarake mahtuu kuvion leveydelle
+  guides(colour = guide_legend(ncol = 1))
+
+save_fig(p, "divergenssi-hajonta")
+
+```
+
+Oikea asteikko on viisinkertainen vasempaan verrattuna. Hajonnan muutoksen
+sarjoista puuttuu ensimmäinen vuosi, koska ne ovat muutoksia.
