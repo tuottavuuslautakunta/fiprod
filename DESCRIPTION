@@ -12,6 +12,7 @@ Roxygen: list(markdown = TRUE)
 Suggests: 
     knitr,
     quarto,
+    readxl,
     rmarkdown,
     rsdmx,
     countrycode,
