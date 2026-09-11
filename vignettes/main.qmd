@@ -311,7 +311,7 @@ OECD:n tiedoissa on virhe. Muut pitäisi olla nolla, mutta tiedoissa Teollisuus 
 dat_gva_ind_comb |> 
   filter(time >= "1995-01-01") |> 
   filter_recode(
-    measure = c("GVA", "GVAHRS"),
+    measure = c("HRS"),
     activity = c("_T", "BTE", "F", "GTNXL", "BTNXL", "L", "OTQ", "RTU", "A"),
     vars = c("cp")
   ) |> 
@@ -321,10 +321,7 @@ dat_gva_ind_comb |>
          Muut = if_else(Muut == `_T`, NA, Muut)) |> 
   ungroup() |> 
   pivot_longer(where(is.numeric), names_to = "activity", values_to = "values") |> 
-  spread(measure, values) |> 
-  mutate(HRS = GVA / GVAHRS) |> 
-  select(-GVA, -GVAHRS) |> 
-  pivot_longer(HRS, names_to = "measure", values_to = "values") |> 
+
   mutate(values = 100 * values / values[activity == "_T"] , .by = !c(activity, values)) |> 
   filter_recode(
     geo = geos,
