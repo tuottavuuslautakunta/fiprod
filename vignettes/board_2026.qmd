@@ -619,8 +619,8 @@ omat laskelmat.
 p <- luku3("kuvio1") |>
   ggplot(aes(time, values)) +
   geom_line() +
-  expand_limits(y = 0) +
-  scale_y_continuous(n.breaks = 8) +
+  expand_limits(y = 50) +
+  scale_y_continuous(n.breaks = 6) +
   the_title_blank("xyl")
 
 save_fig(p, "palvelut-tuottavuus")
@@ -642,18 +642,31 @@ No 127.
 ```{r}
 #| label: fig-palvelut-paaomaintensiteetti
 
+
 # Toimialojen tasot poikkeavat toisistaan paljon, joten jokaisella paneelilla on
 # omat asteikkonsa kuten mallissa, jossa ne ovat viisi erillistä kuviota.
 p <- luku3("kuvio2") |>
   pivot_wider(names_from = series, values_from = values) |>
   ggplot(aes(caplab_total_eur, labprod_eur)) +
-  facet_wrap(~ panel, scales = "free", labeller = label_wrap_gen(width = 25)) +
-  geom_point(size = 0.8) +
-  # maatunnus jää piirtämättä siltä, joka ei mahdu päällekkäin menemättä
-  geom_text(aes(label = key), size = 1.7, vjust = -0.8, check_overlap = TRUE) +
+  facet_wrap(~ panel, scales = "free", labeller = label_wrap_gen(width = 25), ncol = 2) +
+  expand_limits(y = 0, x = 0) +
+  geom_point(size = 1.5, colour = "grey30") +
+  geom_smooth(method = lm, se = FALSE, linewidth = 0.7, colour = "grey70") +
+  geom_text(
+    data = ~ filter(.x, key %in% geos),
+    aes(label = key), size = 3, hjust = 1.5) +
+  geom_point(
+    data = ~ filter(.x, key %in% geos),
+    aes(label = key), size = 1.5, colour = fpb_pal(1)[1]) +
+  geom_text(
+    data = ~ filter(.x, key == "FI"),
+    aes(label = key), size = 3, hjust = 1.5, colour = fpb_pal(2)[2]) +
+  geom_point(
+    data = ~ filter(.x, , key == "FI"),
+    aes(label = key), size = 1.5, colour = fpb_pal(2)[2]) +
   labs(x = "Pääomakanta suhteessa tehtyihin työtunteihin", y = "Tuottavuus")
 
-save_fig(p, "palvelut-paaomaintensiteetti", height = 12)
+save_fig(p, "palvelut-paaomaintensiteetti", height = 18)
 
 ```
 
@@ -673,6 +686,7 @@ p <- luku3("kuvio3") |>
   ggplot(aes(values, key)) +
   geom_col() +
   expand_limits(x = 1) +
+  theme(axis.text.y = element_text(size = 9)) +
   the_title_blank("xyl")
 
 save_fig(p, "tyovoimakustannukset-rajatuotto")
@@ -695,7 +709,11 @@ työn tuottavuuden kasvuun, % vuodessa. Lähde: omat laskelmat.
 # tuottavuuden kasvu.
 k4_yht <- "Työn tuottavuus yksityisissä palveluissa"
 
-pdat <- luku3("kuvio4")
+pdat <- luku3("kuvio4") |> 
+  mutate(series = stringr::str_wrap(series, 50))
+
+lvl <- levels(as_factor(pdat$series))      # kaikki 6 tasoa, k4_yht viimeisenä
+pal <- c(fpb_pal(5), NA)          # tai: c(scales::hue_pal()(5), NA)
 
 p <- pdat |>
   filter(series != k4_yht) |>
@@ -703,19 +721,41 @@ p <- pdat |>
   geom_hline(yintercept = 0, linewidth = 0.3) +
   geom_col() +
   geom_point(data = filter(pdat, series == k4_yht),
-             aes(key, values, shape = series), inherit.aes = FALSE) +
-  scale_shape_manual(values = 16) +
+             aes(key, values, colour = series), shape = 16,
+             inherit.aes = FALSE) +
+  scale_fill_manual(  values = setNames(pal, lvl),                       limits = lvl, name = NULL) +
+  scale_colour_manual(values = setNames(c(rep(NA, 5), "grey10"), lvl),   limits = lvl, name = NULL) +
   the_title_blank("xyl") +
   the_legend_bot() +
-  # selitteet ovat pitkiä, joten yksi sarake mahtuu kuvion leveydelle ja
-  # pisteen selite tulee pylväiden selitteen alle eikä sen viereen
-  theme(legend.box = "vertical") +
-  guides(fill = guide_legend(ncol = 1, order = 1),
-         shape = guide_legend(order = 2))
+  guides(fill   = guide_legend(ncol = 2),
+         colour = guide_legend(ncol = 2)) +
+  theme(legend.text = element_text(size = 8)) 
 
 save_fig(p, "tuottavuuskasvun-lahteet", height = 11)
 
 ```
+
+
+```{r}
+lvl <- levels(factor(pdat$series))      # kaikki 6 tasoa, k4_yht viimeisenä
+pal <- c(fpb_pal(5), NA)          # tai: c(scales::hue_pal()(5), NA)
+
+p <- pdat |>
+  filter(series != k4_yht) |>
+  ggplot(aes(key, values, fill = series)) +
+  geom_hline(yintercept = 0, linewidth = 0.3) +
+  geom_col() +
+  geom_point(data = filter(pdat, series == k4_yht),
+             aes(key, values, colour = series), shape = 16,
+             inherit.aes = FALSE) +
+  scale_fill_manual(  values = setNames(pal, lvl),                       limits = lvl, name = NULL) +
+  scale_colour_manual(values = setNames(c(rep(NA, 5), "grey10"), lvl),   limits = lvl, name = NULL) +
+  the_title_blank("xyl") +
+  the_legend_bot() +
+  guides(fill   = guide_legend(ncol = 2),
+         colour = guide_legend(ncol = 2))
+```
+
 
 Osat summautuvat pisteen arvoon. Pylväiden järjestys on välilehden
 sarakejärjestys; mallikuviossa kaksi viimeistä ovat toisin päin.
