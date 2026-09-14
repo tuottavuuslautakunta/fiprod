@@ -118,15 +118,21 @@ sub_ind <- paste0("Indeksi, keskiarvo ", min(mean_range), "–", max(mean_range)
 public_period <- 1998:2023
 public_period_lab <- paste0(min(public_period), "–", max(public_period))
 
-# Luvun 5 kuviot
+# Lukujen 3 ja 5 kuviot
 #
-# Sarjat tulevat valmiina laskettuina Excelistä (data-raw/rap_2026/Luku5.xlsx),
-# joka luetaan skriptillä data-raw/read_luku5.R. Vintagea ei tarvita, koska
-# Excel on jo tämän raportin oma tiedosto eikä päivity rajapinnasta.
+# Sarjat tulevat valmiina laskettuina Exceleistä (data-raw/rap_2026/Luku3.xlsx
+# ja Luku5.xlsx), jotka luetaan skripteillä data-raw/read_luku3.R ja
+# data-raw/read_luku5.R. Vintagea ei tarvita, koska Excelit ovat jo tämän
+# raportin omia tiedostoja eivätkä päivity rajapinnasta.
+dat_luku3_2026 <- load_dat("dat_luku3_2026")
 dat_luku5_2026 <- load_dat("dat_luku5_2026")
 
-# Poimii yhden kuvion sarjat. droplevels() pudottaa muiden kuvioiden sarjat
+# Poimivat yhden kuvion sarjat. droplevels() pudottaa muiden kuvioiden sarjat
 # pois, jotta selite ja värit tulevat vain tämän kuvion sarjoista.
+luku3 <- function(fig) {
+  droplevels(filter(dat_luku3_2026, figure == fig))
+}
+
 luku5 <- function(fig) {
   droplevels(filter(dat_luku5_2026, figure == fig))
 }
@@ -583,6 +589,131 @@ julkinen sektori on poistettu. Keskiarvo lasketaan ilman puuttuvien vuosien
 korjausta, joten maa jää kuviosta pois, jos yksikin jakson vuosi puuttuu.
 Ilman julkista sektoria oleva arvonlisäys on ketjutettu uudelleen vuoden 2020
 hintoihin omassa valuutassa; ks. [Talouskasvu ja tuottavuus](main.qmd).
+
+# Luvun 3 kuviot
+
+Luvun 3 sarjat tulevat luvun 5 sarjojen tapaan valmiina laskettuina
+Excel-tiedostosta `data-raw/rap_2026/Luku3.xlsx`, jossa on yksi välilehti
+kuviota kohden ja jokaisella välilehdellä myös mallikuvio. Välilehdet luetaan
+yhdeksi taulukoksi skriptillä `data-raw/read_luku3.R`, joka pitää ajaa ennen
+tämän dokumentin kääntämistä.
+
+Mallikuvioista on otettu se, mitkä sarjat kuviossa ovat, sarjojen ja paneelien
+nimet sekä kuvion 2 akselien otsikot. Otsikot ja huomautukset ovat välilehtien
+omia, tavutus purettuna.
+
+## Työn tuottavuus yksityisellä palvelusektorilla
+
+Työn tuottavuus Suomen yksityisellä palvelusektorilla vuosina 2000–2024.
+1 000 euroa kokoaikatyöllistä kohden vuoden 2015 hinnoin. Lähde: Tilastokeskus;
+omat laskelmat.
+
+```{r}
+#| label: fig-palvelut-tuottavuus
+
+p <- luku3("kuvio1") |>
+  ggplot(aes(time, values)) +
+  geom_line() +
+  expand_limits(y = 0) +
+  scale_y_continuous(n.breaks = 8) +
+  the_title_blank("xyl")
+
+save_fig(p, "palvelut-tuottavuus")
+
+```
+
+Yksityinen palvelusektori sisältää tässä TOL 2008:n toimialat 45–63, 68–74 ja
+77–82, ja työn tuottavuus on mitattu vuoden 2015 kiinteähintaisena
+arvonlisäyksenä henkilötyövuotta kohden (välilehden huomautus). Asteikko alkaa
+nollasta kuten mallikuviossa, koska kyse on tasosta.
+
+## Tuottavuus ja pääomaintensiteetti palvelutoimialoilla
+
+Työn tuottavuus ja pääomakanta suhteessa tehtyihin työtunteihin viidellä
+palvelutoimialalla EU-maissa ja Norjassa. Lähde: Kaitila, Ville, "Service
+Industries, Capital Intensity, and Labour Productivity", ETLA Working Papers
+No 127.
+
+```{r}
+#| label: fig-palvelut-paaomaintensiteetti
+
+# Toimialojen tasot poikkeavat toisistaan paljon, joten jokaisella paneelilla on
+# omat asteikkonsa kuten mallissa, jossa ne ovat viisi erillistä kuviota.
+p <- luku3("kuvio2") |>
+  pivot_wider(names_from = series, values_from = values) |>
+  ggplot(aes(caplab_total_eur, labprod_eur)) +
+  facet_wrap(~ panel, scales = "free", labeller = label_wrap_gen(width = 25)) +
+  geom_point(size = 0.8) +
+  # maatunnus jää piirtämättä siltä, joka ei mahdu päällekkäin menemättä
+  geom_text(aes(label = key), size = 1.7, vjust = -0.8, check_overlap = TRUE) +
+  labs(x = "Pääomakanta suhteessa tehtyihin työtunteihin", y = "Tuottavuus")
+
+save_fig(p, "palvelut-paaomaintensiteetti", height = 12)
+
+```
+
+Kuvio on mallikuvioita korkeampi (12 cm), koska paneeleita on viisi.
+Luxemburg puuttuu kaikilta toimialoilta ja Irlanti informaatio- ja
+viestintäalalta, joten ne eivät ole kuviossa.
+
+## Työvoimakustannusten suhde rajatuottoon
+
+Työvoimakustannusten suhde työn arvioituun rajatuottoon toimialoittain vuosina
+2000–2022. Suhdeluku. Lähde: omat laskelmat.
+
+```{r}
+#| label: fig-tyovoimakustannukset-rajatuotto
+
+p <- luku3("kuvio3") |>
+  ggplot(aes(values, key)) +
+  geom_col() +
+  expand_limits(x = 1) +
+  the_title_blank("xyl")
+
+save_fig(p, "tyovoimakustannukset-rajatuotto")
+
+```
+
+Toimialat ovat välilehden järjestyksessä, joka on myös mallikuvion järjestys.
+Asteikko yltää ykköseen kuten mallikuviossa: ykkösen kohdalla työvoimakustannus
+vastaa työn arvioitua rajatuottoa.
+
+## Työn tuottavuuden kasvun lähteet
+
+Työn tuottavuuden kasvun lähteet Suomen yksityisissä palveluissa. Kontribuutio
+työn tuottavuuden kasvuun, % vuodessa. Lähde: omat laskelmat.
+
+```{r}
+#| label: fig-tuottavuuskasvun-lahteet
+
+# Pylväät ovat hajotelman osat ja piste niiden summa, eli koko sektorin
+# tuottavuuden kasvu.
+k4_yht <- "Työn tuottavuus yksityisissä palveluissa"
+
+pdat <- luku3("kuvio4")
+
+p <- pdat |>
+  filter(series != k4_yht) |>
+  ggplot(aes(key, values, fill = series)) +
+  geom_hline(yintercept = 0, linewidth = 0.3) +
+  geom_col() +
+  geom_point(data = filter(pdat, series == k4_yht),
+             aes(key, values, shape = series), inherit.aes = FALSE) +
+  scale_shape_manual(values = 16) +
+  the_title_blank("xyl") +
+  the_legend_bot() +
+  # selitteet ovat pitkiä, joten yksi sarake mahtuu kuvion leveydelle ja
+  # pisteen selite tulee pylväiden selitteen alle eikä sen viereen
+  theme(legend.box = "vertical") +
+  guides(fill = guide_legend(ncol = 1, order = 1),
+         shape = guide_legend(order = 2))
+
+save_fig(p, "tuottavuuskasvun-lahteet", height = 11)
+
+```
+
+Osat summautuvat pisteen arvoon. Pylväiden järjestys on välilehden
+sarakejärjestys; mallikuviossa kaksi viimeistä ovat toisin päin.
 
 # Luvun 5 kuviot
 
