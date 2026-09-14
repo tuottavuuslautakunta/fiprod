@@ -118,14 +118,15 @@ sub_ind <- paste0("Indeksi, keskiarvo ", min(mean_range), "–", max(mean_range)
 public_period <- 1998:2023
 public_period_lab <- paste0(min(public_period), "–", max(public_period))
 
-# Lukujen 3 ja 5 kuviot
+# Lukujen 3, 5 ja 6 kuviot
 #
-# Sarjat tulevat valmiina laskettuina Exceleistä (data-raw/rap_2026/Luku3.xlsx
-# ja Luku5.xlsx), jotka luetaan skripteillä data-raw/read_luku3.R ja
-# data-raw/read_luku5.R. Vintagea ei tarvita, koska Excelit ovat jo tämän
+# Sarjat tulevat valmiina laskettuina Exceleistä (data-raw/rap_2026/Luku3.xlsx,
+# Luku5.xlsx ja Luku6.xlsx), jotka luetaan skripteillä data-raw/read_luku3.R,
+# read_luku5.R ja read_luku6.R. Vintagea ei tarvita, koska Excelit ovat jo tämän
 # raportin omia tiedostoja eivätkä päivity rajapinnasta.
 dat_luku3_2026 <- load_dat("dat_luku3_2026")
 dat_luku5_2026 <- load_dat("dat_luku5_2026")
+dat_luku6_2026 <- load_dat("dat_luku6_2026")
 
 # Poimivat yhden kuvion sarjat. droplevels() pudottaa muiden kuvioiden sarjat
 # pois, jotta selite ja värit tulevat vain tämän kuvion sarjoista.
@@ -135,6 +136,10 @@ luku3 <- function(fig) {
 
 luku5 <- function(fig) {
   droplevels(filter(dat_luku5_2026, figure == fig))
+}
+
+luku6 <- function(fig) {
+  droplevels(filter(dat_luku6_2026, figure == fig))
 }
 
 # Kuvion 17 sarjat on indeksoitu koko jakson keskiarvoon
@@ -939,3 +944,222 @@ save_fig(p, "divergenssi-hajonta")
 
 Oikea asteikko on viisinkertainen vasempaan verrattuna. Hajonnan muutoksen
 sarjoista puuttuu ensimmäinen vuosi, koska ne ovat muutoksia.
+
+# Luvun 6 kuviot
+
+Luvun 6 sarjat tulevat lukujen 3 ja 5 tapaan valmiina laskettuina
+Excel-tiedostosta `data-raw/rap_2026/Luku6.xlsx`, jossa on yksi välilehti
+kuviota kohden. Työkirja on koottu luvun 6 käsikirjoituksen mukana tulleista
+yksittäisistä datapistetiedostoista; Sisältö-välilehdellä on kuvioiden otsikot
+ja lähdetiedostot. Välilehdet luetaan skriptillä `data-raw/read_luku6.R`, joka
+pitää ajaa ennen tämän dokumentin kääntämistä.
+
+Mallikuviot ovat luvun 6 käsikirjoituksessa, eivät työkirjassa. Niistä on otettu
+se, mitkä sarjat kuviossa ovat, sarjojen selitteet ja paneelien otsikot;
+otsikot ja lähteet ovat käsikirjoituksen kuvatekstejä.
+
+## Toimialojen keskittyneisyys EU-maissa
+
+Toimialojen keskittyneisyyden kehitys eri EU-maissa. CR4-osuus, %. Lähde:
+Anttinen ym. (2026) Calligaris ym. (2024) lukuihin perustuen.
+
+```{r}
+#| label: fig-keskittyminen-eu
+
+# Suomi ja Eurooppa erikseen, muut maat yhtenä harmaana joukkona kuten mallissa
+k23_colour <- set_names(c("grey80", ggcustom_pal(2, "fpb")),
+                        c("Muut maat", "Suomi", "Eurooppa (BKT-painotettu)"))
+k23_width <- set_names(c(0.6, 2, 1.3), names(k23_colour))
+
+p <- luku6("kuvio23") |>
+  # maat piirtyvät sarjan järjestyksessä, jotta Suomi ja Eurooppa tulevat
+  # harmaiden viivojen päälle
+  mutate(key = fct_reorder(key, as.integer(series))) |>
+  ggplot(aes(time, values, colour = series, linewidth = series, group = key)) +
+  geom_line() +
+  scale_colour_manual(values = k23_colour) +
+  scale_linewidth_manual(values = k23_width) +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "keskittyminen-eu")
+
+```
+
+Harmaina viivoina ovat Belgia, Espanja, Italia, Kreikka, Norja, Portugali,
+Puola, Ranska, Ruotsi, Saksa, Slovenia, Tanska, Unkari ja Yhdistynyt
+kuningaskunta. CR4-osuus on toimialan neljän suurimman yrityksen osuus, ja
+maittaiset luvut ovat toimialojen yli laskettuja keskiarvoja.
+
+## Toimialojen keskittymisindeksit Suomessa
+
+Toimialojen keskittymisindeksit Suomessa 2014–2024. HHI-indeksi ja CR4-osuus, %.
+Lähde: Anttinen ym. (2026).
+
+```{r}
+#| label: fig-keskittymisindeksit
+
+p <- luku6("kuvio24") |>
+  ggplot(aes(time, values, colour = series)) +
+  facet_wrap(~ panel, scales = "free_y") +
+  geom_line() +
+  scale_y_continuous(n.breaks = 8) +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "keskittymisindeksit")
+
+```
+
+Paneelien asteikot ovat eri yksiköissä, HHI indeksipisteinä ja CR4 prosentteina,
+joten niillä on omat asteikkonsa. HHI on toimialan yritysten markkinaosuuksien
+neliöiden summa ja saa arvoja välillä 0 ja 10 000; p25 ja p75 ovat toimialojen
+jakauman ala- ja yläneljänneksen rajat.
+
+## Markkinoille tulo ja poistuminen
+
+Markkinoille tulleiden ja poistuneiden yritysten osuus Suomessa 2014–2024.
+Osuus yrityksistä, %. Lähde: Anttinen ym. (2026).
+
+```{r}
+#| label: fig-markkinoille-tulo
+
+p <- luku6("kuvio25") |>
+  ggplot(aes(time, values, colour = series)) +
+  geom_line() +
+  expand_limits(y = 0) +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "markkinoille-tulo")
+
+```
+
+Alalta poistumisen viimeinen vuosi on 2023, koska poistuminen tiedetään vasta
+seuraavan vuoden tiedoista.
+
+## Suurimpien yritysten pysyvyys
+
+Suurimpien yritysten markkinaosuuksien pysyvyys Suomessa 2014–2024. Osuus
+yrityksistä, %. Lähde: Anttinen ym. (2026).
+
+```{r}
+#| label: fig-suurimpien-pysyvyys
+
+p <- luku6("kuvio26") |>
+  ggplot(aes(time, values)) +
+  geom_line() +
+  scale_y_continuous(n.breaks = 8) +
+  the_title_blank("xyl")
+
+save_fig(p, "suurimpien-pysyvyys")
+
+```
+
+## Voittomarginaalit
+
+Voittomarginaalit Suomessa 2014–2023. Indeksi, 2014 = 100. Lähde: Anttinen ym.
+(2026).
+
+```{r}
+#| label: fig-voittomarginaalit
+
+p <- luku6("kuvio27") |>
+  ggplot(aes(time, values, colour = series)) +
+  geom_hline(yintercept = 100, linewidth = 0.3) +
+  geom_line() +
+  scale_y_continuous(n.breaks = 8) +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "voittomarginaalit")
+
+```
+
+## Toimintaylijäämän ja tuotoksen suhde
+
+Toimintaylijäämän ja tuotoksen suhde Suomessa, Yhdysvalloissa ja Euroopassa
+vuosina 2000–2024. %, yrityssektori ilman kiinteistöalaa. Lähde: OECD:n
+tietokannat.
+
+```{r}
+#| label: fig-toimintaylijaama-tuotos
+
+p <- luku6("kuvio28") |>
+  ggplot(aes(time, values, colour = series)) +
+  geom_line() +
+  scale_y_continuous(n.breaks = 8) +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "toimintaylijaama-tuotos")
+
+```
+
+Eurooppa on Alankomaat, Belgia, Espanja, Irlanti, Islanti, Iso-Britannia,
+Italia, Itävalta, Kreikka, Latvia, Liettua, Luxemburg, Norja, Portugali, Puola,
+Ranska, Ruotsi, Saksa, Slovakia, Slovenia, Suomi, Tanska, Tšekki, Unkari ja
+Viro. Yhdysvalloilta ei ole tietoa kahdelta viimeiseltä vuodelta.
+
+## Kokonaistuottavuuden kehitys
+
+Kokonaistuottavuuden kehitys Suomessa 2014–2024. Indeksi, 2014 = 100. Lähde:
+Anttinen ym. (2026).
+
+```{r}
+#| label: fig-kokonaistuottavuus
+
+p <- luku6("kuvio29") |>
+  ggplot(aes(time, values, colour = series)) +
+  geom_hline(yintercept = 100, linewidth = 0.3) +
+  geom_line() +
+  scale_y_continuous(n.breaks = 8) +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "kokonaistuottavuus")
+
+```
+
+## Työn tuottavuus Suomessa, Yhdysvalloissa ja Euroopassa
+
+Työn tuottavuus Suomessa, Yhdysvalloissa ja Euroopassa vuosina 2000–2024.
+Indeksi, 2000 = 100. Lähde: OECD:n tietokannat.
+
+```{r}
+#| label: fig-tuottavuus-vertailu
+
+p <- luku6("kuvio30") |>
+  ggplot(aes(time, values, colour = series)) +
+  geom_line() +
+  scale_y_continuous(n.breaks = 8) +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "tuottavuus-vertailu")
+
+```
+
+Eurooppa on sama 25 maan joukko kuin toimintaylijäämän ja tuotoksen suhdetta
+esittävässä kuviossa.
+
+## Investoinnit suhteessa liikevaihtoon
+
+Investointien ja liikevaihdon suhde Suomessa 2014–2024. Investoinnit suhteessa
+liikevaihtoon, %. Lähde: Anttinen ym. (2026).
+
+```{r}
+#| label: fig-investoinnit-liikevaihto
+
+p <- luku6("kuvio31") |>
+  ggplot(aes(time, values)) +
+  facet_wrap(~ panel) +
+  geom_line() +
+  expand_limits(y = 0) +
+  the_title_blank("xyl")
+
+save_fig(p, "investoinnit-liikevaihto")
+
+```
+
+Paneeleilla on sama asteikko kuten mallikuviossa, koska yksikkö on sama.
