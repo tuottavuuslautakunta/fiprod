@@ -999,11 +999,14 @@ Lähde: Anttinen ym. (2026).
 ```{r}
 #| label: fig-keskittymisindeksit
 
-p <- luku6("kuvio24") |>
-  ggplot(aes(time, values, colour = series)) +
+p <- luku6("kuvio24") |> 
+  mutate(panel = fct_recode(panel, "CR4, %" = "CR4")) |> 
+  ggplot(aes(time, values, linetype = series)) +
   facet_wrap(~ panel, scales = "free_y") +
   geom_line() +
+  scale_linetype_manual(values = c(1, 3, 3)) +
   scale_y_continuous(n.breaks = 8) +
+  expand_limits(y = 0) +
   the_title_blank("xyl") +
   the_legend_bot()
 
@@ -1027,7 +1030,7 @@ Osuus yrityksistä, %. Lähde: Anttinen ym. (2026).
 p <- luku6("kuvio25") |>
   ggplot(aes(time, values, colour = series)) +
   geom_line() +
-  expand_limits(y = 0) +
+  expand_limits(y = c(0, 10)) +
   the_title_blank("xyl") +
   the_legend_bot()
 
@@ -1049,7 +1052,8 @@ yrityksistä, %. Lähde: Anttinen ym. (2026).
 p <- luku6("kuvio26") |>
   ggplot(aes(time, values)) +
   geom_line() +
-  scale_y_continuous(n.breaks = 8) +
+  expand_limits(y = c(65, 80)) +
+  scale_y_continuous(n.breaks = 4) +
   the_title_blank("xyl")
 
 save_fig(p, "suurimpien-pysyvyys")
@@ -1065,10 +1069,11 @@ Voittomarginaalit Suomessa 2014–2023. Indeksi, 2014 = 100. Lähde: Anttinen ym
 #| label: fig-voittomarginaalit
 
 p <- luku6("kuvio27") |>
-  ggplot(aes(time, values, colour = series)) +
-  geom_hline(yintercept = 100, linewidth = 0.3) +
+  ggplot(aes(time, values, linetype = series)) +
+  # geom_hline(yintercept = 100, linewidth = 0.3) +
   geom_line() +
-  scale_y_continuous(n.breaks = 8) +
+  scale_linetype_manual(values = c(1, 3, 3)) +
+  scale_y_continuous(n.breaks = 4) +
   the_title_blank("xyl") +
   the_legend_bot()
 
@@ -1110,10 +1115,12 @@ Anttinen ym. (2026).
 #| label: fig-kokonaistuottavuus
 
 p <- luku6("kuvio29") |>
-  ggplot(aes(time, values, colour = series)) +
+  ggplot(aes(time, values, linetype = series)) +
   geom_hline(yintercept = 100, linewidth = 0.3) +
   geom_line() +
-  scale_y_continuous(n.breaks = 8) +
+  scale_linetype_manual(values = c(1, 3, 3)) +
+  scale_y_continuous(n.breaks = 5) +
+  expand_limits(y = c(90, 110)) +
   the_title_blank("xyl") +
   the_legend_bot()
 
@@ -1155,7 +1162,7 @@ p <- luku6("kuvio31") |>
   ggplot(aes(time, values)) +
   facet_wrap(~ panel) +
   geom_line() +
-  expand_limits(y = 0) +
+  expand_limits(y = c(0,10)) +
   the_title_blank("xyl")
 
 save_fig(p, "investoinnit-liikevaihto")
