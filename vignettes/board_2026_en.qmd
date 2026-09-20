@@ -15,10 +15,10 @@ Updated: `r Sys.Date()`
 
 The figures of the report, in English. This is the English version of
 [Tuottavuuslautakunnan raportti 2026](board_2026.qmd): the same figures with the
-same names, but the labels and the text are in English and the png files are
-written to a folder of their own (`figures/en/<year>/` instead of
-`figures/<year>/`), so that the two language versions never overwrite each
-other. Titles, subtitles and sources are text above the figure, not part of the
+same names, but the labels and the text are in English and the files (a png and
+a pdf of each figure) are written to a folder of their own (`figures/en/<year>/`
+instead of `figures/<year>/`), so that the two language versions never overwrite
+each other. Titles, subtitles and sources are text above the figure, not part of the
 figure itself.
 
 ## The data in brief

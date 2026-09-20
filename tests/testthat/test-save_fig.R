@@ -16,7 +16,7 @@ test_that("the report's own defaults are what comes out of the box", {
     expect_equal(d$width, 13.5)
     expect_equal(d$height, 8.5)
     expect_equal(d$units, "cm")
-    expect_equal(d$device, "png")
+    expect_equal(d$device, c("png", "pdf"))
     expect_null(d$year)
   })
 })
@@ -57,6 +57,35 @@ test_that("the file lands in a folder named by the year", {
     root <- tempfile("figs")
     save_fig(a_plot(), "kuvio", dir = root, year = 2026)
     expect_true(file.exists(file.path(root, "2026", "kuvio.png")))
+  })
+})
+
+test_that("a png and a pdf of every figure by default", {
+  skip_if_not_installed("ggplot2")
+  with_clean_defaults({
+    root <- tempfile("figs")
+    save_fig(a_plot(), "kuvio", dir = root, year = 2026)
+    expect_true(file.exists(file.path(root, "2026", "kuvio.png")))
+    expect_true(file.exists(file.path(root, "2026", "kuvio.pdf")))
+  })
+})
+
+test_that("one format can be asked for on its own", {
+  skip_if_not_installed("ggplot2")
+  with_clean_defaults({
+    root <- tempfile("figs")
+    save_fig(a_plot(), "kuvio", dir = root, year = 2026, device = "png")
+    expect_true(file.exists(file.path(root, "2026", "kuvio.png")))
+    expect_false(file.exists(file.path(root, "2026", "kuvio.pdf")))
+  })
+})
+
+test_that("a device that names no format is refused", {
+  skip_if_not_installed("ggplot2")
+  with_clean_defaults({
+    expect_error(save_fig(a_plot(), "kuvio", dir = tempfile("figs"),
+                          device = character()),
+                 "at least one file format")
   })
 })
 

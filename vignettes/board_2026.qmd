@@ -14,8 +14,8 @@ format:
 Päivitetty: `r Sys.Date()`
 
 Raportin kuviot. Otsikot, alaotsikot ja lähdetiedot ovat kuvion yläpuolella
-tekstinä, eivät kuviossa, ja jokainen kuvio tallentuu myös png-tiedostoksi
-julkaisuvuoden mukaiseen kansioon.
+tekstinä, eivät kuviossa, ja jokainen kuvio tallentuu myös png- ja
+pdf-tiedostoksi julkaisuvuoden mukaiseen kansioon.
 
 Englanninkielinen versio samoista kuvioista on
 [Finnish Productivity Board report 2026](board_2026_en.qmd). Sen kuviot
@@ -891,7 +891,7 @@ ennen tämän dokumentin kääntämistä.
 Mallikuvioista on otettu se, mitkä sarjat kuviossa ovat, sarjojen selitteet ja
 kuvion 20 paneelien otsikot. Muuten kuviot ovat samassa tyylissä kuin raportin
 muut kuviot: otsikko, alaotsikko ja lähde ovat tekstinä kuvion yläpuolella ja
-jokainen kuvio tallentuu myös png-tiedostoksi.
+jokainen kuvio tallentuu myös png- ja pdf-tiedostoksi.
 
 ## Työn tuottavuus ja reaalipalkat
 

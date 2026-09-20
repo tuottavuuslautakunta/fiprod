@@ -11,7 +11,8 @@ fig_defaults()
 }
 \arguments{
 \item{...}{Named settings to change: \code{dir}, \code{year}, \code{width}, \code{height},
-\code{units}, \code{dpi} or \code{device}. \code{year = NULL} means the current year.}
+\code{units}, \code{dpi} or \code{device}. \code{year = NULL} means the current year and
+\code{device} may name several formats, such as \code{c("png", "pdf")}.}
 }
 \value{
 \code{set_fig_defaults()} returns the previous settings invisibly, so they
@@ -20,7 +21,7 @@ can be restored. \code{fig_defaults()} returns the settings in force.
 \description{
 The settings \code{\link[=save_fig]{save_fig()}} uses when it is not told otherwise: the folder, the
 year that names the subfolder, and the size, resolution and format of the
-file.
+files.
 }
 \examples{
 fig_defaults()
