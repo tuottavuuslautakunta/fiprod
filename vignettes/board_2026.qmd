@@ -118,13 +118,14 @@ sub_ind <- paste0("Indeksi, keskiarvo ", min(mean_range), "–", max(mean_range)
 public_period <- 1998:2023
 public_period_lab <- paste0(min(public_period), "–", max(public_period))
 
-# Lukujen 3, 5 ja 6 kuviot
+# Lukujen 3, 4.2, 5 ja 6 kuviot
 #
 # Sarjat tulevat valmiina laskettuina Exceleistä (data-raw/rap_2026/Luku3.xlsx,
-# Luku5.xlsx ja Luku6.xlsx), jotka luetaan skripteillä data-raw/read_luku3.R,
-# read_luku5.R ja read_luku6.R. Vintagea ei tarvita, koska Excelit ovat jo tämän
+# Luku4_2.xlsx, Luku5.xlsx ja Luku6.xlsx), jotka luetaan skripteillä
+# data-raw/read_luku3.R, read_luku4_2.R, read_luku5.R ja read_luku6.R. Vintagea ei tarvita, koska Excelit ovat jo tämän
 # raportin omia tiedostoja eivätkä päivity rajapinnasta.
 dat_luku3_2026 <- load_dat("dat_luku3_2026")
+dat_luku4_2_2026 <- load_dat("dat_luku4_2_2026")
 dat_luku5_2026 <- load_dat("dat_luku5_2026")
 dat_luku6_2026 <- load_dat("dat_luku6_2026")
 
@@ -132,6 +133,10 @@ dat_luku6_2026 <- load_dat("dat_luku6_2026")
 # pois, jotta selite ja värit tulevat vain tämän kuvion sarjoista.
 luku3 <- function(fig) {
   droplevels(filter(dat_luku3_2026, figure == fig))
+}
+
+luku4_2 <- function(fig) {
+  droplevels(filter(dat_luku4_2_2026, figure == fig))
 }
 
 luku5 <- function(fig) {
@@ -759,6 +764,121 @@ p <- pdat |>
 
 Osat summautuvat pisteen arvoon. Pylväiden järjestys on välilehden
 sarakejärjestys; mallikuviossa kaksi viimeistä ovat toisin päin.
+
+## Digitaalisen intensiteetin luokat
+
+Yritysten jakautuminen digitaalisen intensiteetin luokkiin yksityisillä
+palvelualoilla. Osuus yrityksistä, %. Lähde: omat laskelmat.
+
+```{r}
+#| label: fig-digi-intensiteetti
+
+p <- luku3("kuvio11") |>
+  ggplot(aes(key, values, fill = series)) +
+  geom_col(position = "dodge") +
+  the_title_blank("xyl") +
+  the_legend_bot() +
+  guides(fill = guide_legend(nrow = 3))
+
+save_fig(p, "digi-intensiteetti", height = 10)
+
+```
+
+Toimialat ovat välilehden huomautuksen mukaan TOL 2008:n luokat: kauppa
+(G45–47), kuljetus ja varastointi (H49–53), majoitus- ja ravitsemistoiminta
+(I55–56), informaatio ja viestintä (J58–63), kiinteistöala (L68),
+asiantuntijapalvelut (M69–74 pl. 75), tukipalvelut (N77–82) sekä tietokoneiden
+ja viestintälaitteiden korjaus (S951). Välilehdellä on lisäksi luokkien osuudet
+vuosittain 2015–2021, jota mallikuvio ei käytä.
+
+# Luvun 4.2 kuviot
+
+Luvun 4.2 sarjat tulevat muiden lukujen tapaan valmiina laskettuina
+Excel-tiedostosta `data-raw/rap_2026/Luku4_2.xlsx`, jossa on yksi välilehti
+kuviota kohden. Välilehdet luetaan skriptillä `data-raw/read_luku4_2.R`, joka
+pitää ajaa ennen tämän dokumentin kääntämistä.
+
+Kuvioiden 14 ja 15 mallikuviot ovat välilehdillä. Kuviolla 16 ei ole
+mallikuviota, vaan sen otsikko, alaotsikko, selitteet ja lähteet ovat
+välilehden sarakkeessa L tekstinä.
+
+## Työlliset julkisyhteisöissä ja yksityisellä sektorilla
+
+Työllisten määrä julkisyhteisöissä ja yksityisellä sektorilla. 1 000 henkeä.
+Lähde: Tilastokeskus, kansantalouden tilinpito.
+
+```{r}
+#| label: fig-tyolliset-sektoreittain
+
+# Julkisyhteisöt on mallikuviossa pinon alimpana, joten pino käännetään:
+# ggplot2 pinoaa oletuksena ensimmäisen tason päällimmäiseksi
+p <- luku4_2("kuvio14") |>
+  ggplot(aes(time, values, fill = series)) +
+  geom_col(position = position_stack(reverse = TRUE)) +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "tyolliset-sektoreittain")
+
+```
+
+Kaksi viimeistä vuotta ovat ennakkotietoja. Välilehdellä ovat myös kotitaloudet
+ja kotitalouksia palvelevat voittoa tavoittelemattomat yhteisöt, jotka eivät ole
+mallikuviossa.
+
+## Alkavat eläkkeet
+
+Alkavat eläkkeet eläkelajeittain 2025–2044. Kumulatiivinen lukumäärä. Lähde:
+Keva (2025).
+
+```{r}
+#| label: fig-alkavat-elakkeet
+
+p <- luku4_2("kuvio15") |>
+  ggplot(aes(time, values, fill = series)) +
+  geom_col(position = position_stack(reverse = TRUE)) +
+  scale_y_continuous(labels = scales::label_number(big.mark = " ")) +
+  the_title_blank("xyl") +
+  the_legend_bot() +
+  guides(fill = guide_legend(nrow = 2))
+
+save_fig(p, "alkavat-elakkeet")
+
+```
+
+## Inhimillinen pääomakanta
+
+Inhimillisen pääomakannan kehitys kolmessa eri ennusteskenaariossa 2024–2075.
+Milj. euroa, volyymi, viitevuosi 2015. Lähteet: Tilastokeskus, laskelmat Arto
+Kokkinen (VTV) ja Pirkka Jalasjoki (Suomen Pankki).
+
+```{r}
+#| label: fig-inhimillinen-paaomakanta
+
+# Välilehden selitetekstit ovat skenaarion nimi ja sen määritelmä kaksoispisteen
+# erottamina. Selitteeseen jää nimi ja määritelmät ovat kuvion alla, koska
+# kokonaiset tekstit veisivät puolet kuvion korkeudesta.
+p <- luku4_2("kuvio16") |>
+  mutate(series = fct_relabel(series, str_remove, ":.*")) |>
+  ggplot(aes(time, values, colour = series)) +
+  geom_line() +
+  scale_y_continuous(n.breaks = 8,
+                     labels = scales::label_number(big.mark = " ")) +
+  the_title_blank("xyl") +
+  the_legend_bot() +
+  guides(colour = guide_legend(nrow = 2))
+
+save_fig(p, "inhimillinen-paaomakanta")
+
+```
+
+Perusskenaariossa 50 %:lla 25–34-vuotiaista on korkea-asteen tutkinto vuoteen
+2035 mennessä ja optimistisessa skenaariossa 70 %:lla vuoteen 2040 mennessä.
+Skenaariot eroavat toisistaan vasta vuodesta 2024, joten sitä ennen viivat ovat
+päällekkäin. Välilehdellä on lisäksi perusskenaarion pääomakanta
+koulutusasteittain, jota kuvio ei käytä. Menetelmän kuvaus: Kokkinen, A.,
+Obstbaum, M., ja Mäki-Fränti P. (2021). Bank of Finland's Long-Run Forecast
+Framework with Human Capital. BoF Economics Review 10-2021.
 
 # Luvun 5 kuviot
 

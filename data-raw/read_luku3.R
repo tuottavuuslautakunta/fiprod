@@ -127,10 +127,32 @@ kuvio4 <-
   select(figure, panel, series, key, time, values)
 
 
+## Kuvio 11: digitaalisen intensiteetin luokat -------------------------------
+#
+# Välilehdellä on kaksi taulukkoa: vasemmalla luokkien osuudet vuosittain ja
+# toimialoittain, oikealla mallikuvion käyttämä taulukko, jossa on yksi sarake
+# toimialaa kohden ja rivi luokkaa kohden. Mallikuvio käyttää oikeaa taulukkoa
+# (J4:Q8), jonka toimialat ovat suomeksi ja jonka järjestys on myös kuvion
+# selitteen järjestys.
+#
+# Osuudet ovat välilehdellä desimaalilukuina, ja ne muutetaan tässä
+# prosenteiksi, kuten muissakin raportin kuvioissa.
+
+kuvio11 <-
+  readxl::read_xlsx(luku3_file, sheet = "Kuvio11", range = "J4:Q8") |>
+  rename(key = 1) |>
+  pivot_longer(!key, names_to = "series", values_to = "values") |>
+  mutate(figure = "kuvio11",
+         panel = NA_character_,
+         time = as.Date(NA),
+         values = 100 * values) |>
+  select(figure, panel, series, key, time, values)
+
+
 ## Yhteen taulukkoon ----------------------------------------------------------
 
 dat_luku3_2026 <-
-  bind_rows(kuvio1, kuvio2, kuvio3, kuvio4) |>
+  bind_rows(kuvio1, kuvio2, kuvio3, kuvio4, kuvio11) |>
   mutate(across(c(figure, panel, series, key), as_factor))
 
 save_dat(dat_luku3_2026, overwrite = TRUE)
