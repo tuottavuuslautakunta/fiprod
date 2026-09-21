@@ -73,19 +73,15 @@ kuvio15 <-
 # vain skenaariot, eli sarakkeet B, C ja I. Selitteet ovat välilehden
 # sarakkeessa L olevia kuvion tekstejä.
 
-luku4_2_skenaariot <- c(
-  "Muuttumattoman politiikan skenaario",
-  "Perusskenaario: Vuoteen 2035 mennessä 50 %:lla 25-34-vuotiaista korkea-asteen tutkinto",
-  "Optimistinen skenaario: Vuoteen 2040 mennessä 70 %:lla 25-34-vuotiaista korkea-asteen tutkinto"
-)
+luku4_2_skenaariot <- c("Muuttumaton", "Perus", "Optimistinen")
 
 kuvio16 <-
   readxl::read_xlsx(luku4_2_file, sheet = "Kuvio 16", range = "A3:I78",
                     col_names = c("time", luku4_2_skenaariot[1:2],
-                                  "lukio", "amm", "amk", "ylempi", "tutkija",
+                                  "Lukio", "Amm. koulutus", "AMK", "Ylempi kk-aste", "Tutkija",
                                   luku4_2_skenaariot[3]),
                     col_types = rep("numeric", 9)) |>
-  select(time, all_of(luku4_2_skenaariot)) |>
+  # select(time, all_of(luku4_2_skenaariot)) |>
   longer_luku4_2("kuvio16")
 
 

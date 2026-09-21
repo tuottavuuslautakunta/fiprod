@@ -51,7 +51,7 @@ library(ggcustom)
 library(pttdatahaku)
 
 
-set_gg(theme_fpb())
+set_gg(theme_fpb(base_size = 11))
 options(OutDec = ",")
 
 y_log_breaks <- scales::breaks_pretty(n = 8)
@@ -184,7 +184,7 @@ p <- dat_gdp_main |>
   guides(colour = guide_legend(reverse = TRUE), linewidth = guide_legend(reverse = TRUE)) +
   the_title_blank("xyl")
 
-save_fig(p, "bkt-per-capita")
+save_fig(p, "1_bkt-per-capita")
 
 ```
 
@@ -242,7 +242,7 @@ p <- ggplot(pdat, aes(time, values, colour = geo, linewidth = geo)) +
   guides(colour = guide_legend(reverse = TRUE), linewidth = guide_legend(reverse = TRUE)) +
   the_title_blank("xyl")
 
-save_fig(p, "bkt-per-capita-hajotelma")
+save_fig(p, "2_bkt-per-capita-hajotelma")
 
 ```
 
@@ -257,7 +257,7 @@ Työn tuottavuus ja työlliset. BKT työllistä kohden vuoden 2020 $ hinnoin
 ostovoimakorjattuna ja työlliset henkeä kohden (log-asteikko). Lähde: Eurostat,
 OECD, Tuottavuuslautakunta.
 
-```{r}
+```{r, eval=FALSE}
 #| label: fig-bkt-per-capita-hajotelma-tyoll
 
 pdat <- dat_gdp_main |>
@@ -275,7 +275,7 @@ pdat <- dat_gdp_main |>
   mutate(
     time = time,
     geo = geo,
-    "BKT per työtunnit, $" = 1000 * GDP / EMP,
+    "BKT per työlliset, $" = 1000 * GDP / EMP,
     "Työlliset per väestö" = EMP / POP,
     .keep = "none") |> 
   pivot_longer(!c("time", "geo"), names_to = "measure", values_to = "values")
@@ -335,7 +335,7 @@ p <- dat_gva_ind_comb |>
   guides(colour = guide_legend(reverse = TRUE), linewidth = guide_legend(reverse = TRUE)) +
   the_title_blank("xyl")
 
-save_fig(p, "tuottavuus-yrityssektori")
+save_fig(p, "3_tuottavuus-yrityssektori")
 
 ```
 
@@ -374,7 +374,7 @@ p <- dat_gva_ind_comb|>
   guides(colour = guide_legend(reverse = TRUE), linewidth = guide_legend(reverse = TRUE)) +
   the_title_blank("xyl")
 
-save_fig(p, "tuottavuus-toimialat")
+save_fig(p, "4_tuottavuus-toimialat")
 
 ```
 
@@ -409,7 +409,7 @@ p <- dat_gva_ind_comb|>
   guides(colour = guide_legend(reverse = TRUE), linewidth = guide_legend(reverse = TRUE)) +
   the_title_blank("xyl") 
 
-save_fig(p, "tuottavuustaso-palvelut")
+save_fig(p, "s1_tuottavuustaso-palvelut")
 
 ```
 
@@ -435,7 +435,7 @@ p <- pick(c("Nimellinen, omassa valuutassa" = "nulc_aper",
   guides(colour = guide_legend(nrow = 2)) +
   labs(y = NULL)
 
-save_fig(p, "ulc-maaritelmat")
+save_fig(p, "5_ulc-maaritelmat")
 
 ```
 
@@ -464,7 +464,7 @@ p <- pick(c("Tuottavuus" = "lp_ind",
   the_legend_bot() +
   labs(y = NULL)
 
-save_fig(p, "ulc-hajotelma")
+save_fig(p, "6_ulc-hajotelma")
 
 ```
 
@@ -473,6 +473,202 @@ tarkoittaa valuutan heikkenemistä. Kuviossa se on käännetty ympäri
 (100² / indeksi), jolloin nousu on valuutan vahvistuminen ja siten
 yksikkötyökustannuksen nousu yhteisessä valuutassa. Palkansaajakorvausten nousu
 nostaa yksikkötyökustannusta, tuottavuuden nousu laskee sitä.
+
+
+
+# Luvun 3 kuviot
+
+Luvun 3 sarjat tulevat luvun 5 sarjojen tapaan valmiina laskettuina
+Excel-tiedostosta `data-raw/rap_2026/Luku3.xlsx`, jossa on yksi välilehti
+kuviota kohden ja jokaisella välilehdellä myös mallikuvio. Välilehdet luetaan
+yhdeksi taulukoksi skriptillä `data-raw/read_luku3.R`, joka pitää ajaa ennen
+tämän dokumentin kääntämistä.
+
+Mallikuvioista on otettu se, mitkä sarjat kuviossa ovat, sarjojen ja paneelien
+nimet sekä kuvion 2 akselien otsikot. Otsikot ja huomautukset ovat välilehtien
+omia, tavutus purettuna.
+
+## Työn tuottavuus yksityisellä palvelusektorilla
+
+Työn tuottavuus Suomen yksityisellä palvelusektorilla vuosina 2000–2024.
+1 000 euroa kokoaikatyöllistä kohden vuoden 2015 hinnoin. Lähde: Tilastokeskus;
+omat laskelmat.
+
+```{r}
+#| label: fig-palvelut-tuottavuus
+
+p <- luku3("kuvio1") |>
+  ggplot(aes(time, values)) +
+  geom_line() +
+  expand_limits(y = 50) +
+  scale_y_continuous(n.breaks = 6) +
+  the_title_blank("xyl")
+
+save_fig(p, "7_palvelut-tuottavuus")
+
+```
+
+Yksityinen palvelusektori sisältää tässä TOL 2008:n toimialat 45–63, 68–74 ja
+77–82, ja työn tuottavuus on mitattu vuoden 2015 kiinteähintaisena
+arvonlisäyksenä henkilötyövuotta kohden (välilehden huomautus). Asteikko alkaa
+nollasta kuten mallikuviossa, koska kyse on tasosta.
+
+## Tuottavuus ja pääomaintensiteetti palvelutoimialoilla
+
+Työn tuottavuus ja pääomakanta suhteessa tehtyihin työtunteihin viidellä
+palvelutoimialalla EU-maissa ja Norjassa. Lähde: Kaitila, Ville, "Service
+Industries, Capital Intensity, and Labour Productivity", ETLA Working Papers
+No 127.
+
+```{r}
+#| label: fig-palvelut-paaomaintensiteetti
+
+
+# Toimialojen tasot poikkeavat toisistaan paljon, joten jokaisella paneelilla on
+# omat asteikkonsa kuten mallissa, jossa ne ovat viisi erillistä kuviota.
+p <- luku3("kuvio2") |>
+  pivot_wider(names_from = series, values_from = values) |>
+  ggplot(aes(caplab_total_eur, labprod_eur)) +
+  facet_wrap(~ panel, scales = "free", labeller = label_wrap_gen(width = 25), ncol = 2) +
+  expand_limits(y = 0, x = 0) +
+  geom_point(size = 1.5, colour = "grey30") +
+  geom_smooth(method = lm, se = FALSE, linewidth = 0.7, colour = "grey70") +
+  geom_text(
+    data = ~ filter(.x, key %in% geos),
+    aes(label = key), size = 3, hjust = 1.5) +
+  geom_point(
+    data = ~ filter(.x, key %in% geos),
+    aes(label = key), size = 1.5, colour = fpb_pal(1)[1]) +
+  geom_text(
+    data = ~ filter(.x, key == "FI"),
+    aes(label = key), size = 3, hjust = 1.5, colour = fpb_pal(2)[2]) +
+  geom_point(
+    data = ~ filter(.x, , key == "FI"),
+    aes(label = key), size = 1.5, colour = fpb_pal(2)[2]) +
+  labs(x = "Pääomakanta suhteessa tehtyihin työtunteihin", y = "Tuottavuus")
+
+save_fig(p, "8_palvelut-paaomaintensiteetti", height = 18)
+
+```
+
+Kuvio on mallikuvioita korkeampi (12 cm), koska paneeleita on viisi.
+Luxemburg puuttuu kaikilta toimialoilta ja Irlanti informaatio- ja
+viestintäalalta, joten ne eivät ole kuviossa.
+
+## Työvoimakustannusten suhde rajatuottoon
+
+Työvoimakustannusten suhde työn arvioituun rajatuottoon toimialoittain vuosina
+2000–2022. Suhdeluku. Lähde: omat laskelmat.
+
+```{r}
+#| label: fig-tyovoimakustannukset-rajatuotto
+
+p <- luku3("kuvio3") |>
+  ggplot(aes(values, key)) +
+  geom_col() +
+  expand_limits(x = 1) +
+  theme(axis.text.y = element_text(size = 9)) +
+  the_title_blank("xyl")
+
+save_fig(p, "9_tyovoimakustannukset-rajatuotto")
+
+```
+
+Toimialat ovat välilehden järjestyksessä, joka on myös mallikuvion järjestys.
+Asteikko yltää ykköseen kuten mallikuviossa: ykkösen kohdalla työvoimakustannus
+vastaa työn arvioitua rajatuottoa.
+
+## Työn tuottavuuden kasvun lähteet
+
+Työn tuottavuuden kasvun lähteet Suomen yksityisissä palveluissa. Kontribuutio
+työn tuottavuuden kasvuun, % vuodessa. Lähde: omat laskelmat.
+
+```{r}
+#| label: fig-tuottavuuskasvun-lahteet
+
+# Pylväät ovat hajotelman osat ja piste niiden summa, eli koko sektorin
+# tuottavuuden kasvu.
+k4_yht <- "Työn tuottavuus yksityisissä palveluissa"
+
+pdat <- luku3("kuvio4") |> 
+  mutate(series = stringr::str_wrap(series, 50))
+
+lvl <- levels(as_factor(pdat$series))      # kaikki 6 tasoa, k4_yht viimeisenä
+pal <- c(fpb_pal(5), NA)          # tai: c(scales::hue_pal()(5), NA)
+
+p <- pdat |>
+  filter(series != k4_yht) |>
+  ggplot(aes(key, values, fill = series)) +
+  geom_hline(yintercept = 0, linewidth = 0.3) +
+  geom_col() +
+  geom_point(data = filter(pdat, series == k4_yht),
+             aes(key, values, colour = series), shape = 16,
+             inherit.aes = FALSE) +
+  scale_fill_manual(  values = setNames(pal, lvl),                       limits = lvl, name = NULL) +
+  scale_colour_manual(values = setNames(c(rep(NA, 5), "grey10"), lvl),   limits = lvl, name = NULL) +
+  the_title_blank("xyl") +
+  the_legend_bot() +
+  guides(fill   = guide_legend(ncol = 2),
+         colour = guide_legend(ncol = 2)) +
+  theme(legend.text = element_text(size = 8)) 
+
+save_fig(p, "10_tuottavuuskasvun-lahteet", height = 11)
+
+```
+
+
+```{r}
+lvl <- levels(factor(pdat$series))      # kaikki 6 tasoa, k4_yht viimeisenä
+pal <- c(fpb_pal(5), NA)          # tai: c(scales::hue_pal()(5), NA)
+
+p <- pdat |>
+  filter(series != k4_yht) |>
+  ggplot(aes(key, values, fill = series)) +
+  geom_hline(yintercept = 0, linewidth = 0.3) +
+  geom_col() +
+  geom_point(data = filter(pdat, series == k4_yht),
+             aes(key, values, colour = series), shape = 16,
+             inherit.aes = FALSE) +
+  scale_fill_manual(  values = setNames(pal, lvl),                       limits = lvl, name = NULL) +
+  scale_colour_manual(values = setNames(c(rep(NA, 5), "grey10"), lvl),   limits = lvl, name = NULL) +
+  the_title_blank("xyl") +
+  the_legend_bot() +
+  guides(fill   = guide_legend(ncol = 2),
+         colour = guide_legend(ncol = 2))
+```
+
+
+Osat summautuvat pisteen arvoon. Pylväiden järjestys on välilehden
+sarakejärjestys; mallikuviossa kaksi viimeistä ovat toisin päin.
+
+## Digitaalisen intensiteetin luokat
+
+Yritysten jakautuminen digitaalisen intensiteetin luokkiin yksityisillä
+palvelualoilla. Osuus yrityksistä, %. Lähde: omat laskelmat.
+
+```{r}
+#| label: fig-digi-intensiteetti
+
+p <- luku3("kuvio11") |>
+  ggplot(aes(key, values, fill = series)) +
+  geom_col(position = "dodge", width = 0.7) +
+  the_title_blank("xyl") +
+  the_legend_bot() +
+  guides(fill = guide_legend(nrow = 3)) +
+  theme(legend.text = element_text(size = 8)) 
+
+save_fig(p, "11_digi-intensiteetti", height = 10)
+
+```
+
+Toimialat ovat välilehden huomautuksen mukaan TOL 2008:n luokat: kauppa
+(G45–47), kuljetus ja varastointi (H49–53), majoitus- ja ravitsemistoiminta
+(I55–56), informaatio ja viestintä (J58–63), kiinteistöala (L68),
+asiantuntijapalvelut (M69–74 pl. 75), tukipalvelut (N77–82) sekä tietokoneiden
+ja viestintälaitteiden korjaus (S951). Välilehdellä on lisäksi luokkien osuudet
+vuosittain 2015–2021, jota mallikuvio ei käytä.
+
+# Luvun 4 kuviot
 
 # Julkisen sektorin tuottavuus
 
@@ -512,7 +708,7 @@ p <- dat_gva_ind_comb |>
   guides(colour = guide_legend(reverse = TRUE), linewidth = guide_legend(reverse = TRUE)) +
   the_title_blank("xyl")
 
-save_fig(p, "tuottavuus-julkinen")
+save_fig(p, "12_tuottavuus-julkinen")
 
 ```
 
@@ -589,7 +785,7 @@ p <- pdat |>
   geom_col(position = "dodge") +
   the_title_blank("xyl")
 
-save_fig(p, "tuottavuuskasvu-julkinen")
+save_fig(p, "13_tuottavuuskasvu-julkinen")
 
 ```
 
@@ -599,199 +795,6 @@ julkinen sektori on poistettu. Keskiarvo lasketaan ilman puuttuvien vuosien
 korjausta, joten maa jää kuviosta pois, jos yksikin jakson vuosi puuttuu.
 Ilman julkista sektoria oleva arvonlisäys on ketjutettu uudelleen vuoden 2020
 hintoihin omassa valuutassa; ks. [Talouskasvu ja tuottavuus](main.qmd).
-
-# Luvun 3 kuviot
-
-Luvun 3 sarjat tulevat luvun 5 sarjojen tapaan valmiina laskettuina
-Excel-tiedostosta `data-raw/rap_2026/Luku3.xlsx`, jossa on yksi välilehti
-kuviota kohden ja jokaisella välilehdellä myös mallikuvio. Välilehdet luetaan
-yhdeksi taulukoksi skriptillä `data-raw/read_luku3.R`, joka pitää ajaa ennen
-tämän dokumentin kääntämistä.
-
-Mallikuvioista on otettu se, mitkä sarjat kuviossa ovat, sarjojen ja paneelien
-nimet sekä kuvion 2 akselien otsikot. Otsikot ja huomautukset ovat välilehtien
-omia, tavutus purettuna.
-
-## Työn tuottavuus yksityisellä palvelusektorilla
-
-Työn tuottavuus Suomen yksityisellä palvelusektorilla vuosina 2000–2024.
-1 000 euroa kokoaikatyöllistä kohden vuoden 2015 hinnoin. Lähde: Tilastokeskus;
-omat laskelmat.
-
-```{r}
-#| label: fig-palvelut-tuottavuus
-
-p <- luku3("kuvio1") |>
-  ggplot(aes(time, values)) +
-  geom_line() +
-  expand_limits(y = 50) +
-  scale_y_continuous(n.breaks = 6) +
-  the_title_blank("xyl")
-
-save_fig(p, "palvelut-tuottavuus")
-
-```
-
-Yksityinen palvelusektori sisältää tässä TOL 2008:n toimialat 45–63, 68–74 ja
-77–82, ja työn tuottavuus on mitattu vuoden 2015 kiinteähintaisena
-arvonlisäyksenä henkilötyövuotta kohden (välilehden huomautus). Asteikko alkaa
-nollasta kuten mallikuviossa, koska kyse on tasosta.
-
-## Tuottavuus ja pääomaintensiteetti palvelutoimialoilla
-
-Työn tuottavuus ja pääomakanta suhteessa tehtyihin työtunteihin viidellä
-palvelutoimialalla EU-maissa ja Norjassa. Lähde: Kaitila, Ville, "Service
-Industries, Capital Intensity, and Labour Productivity", ETLA Working Papers
-No 127.
-
-```{r}
-#| label: fig-palvelut-paaomaintensiteetti
-
-
-# Toimialojen tasot poikkeavat toisistaan paljon, joten jokaisella paneelilla on
-# omat asteikkonsa kuten mallissa, jossa ne ovat viisi erillistä kuviota.
-p <- luku3("kuvio2") |>
-  pivot_wider(names_from = series, values_from = values) |>
-  ggplot(aes(caplab_total_eur, labprod_eur)) +
-  facet_wrap(~ panel, scales = "free", labeller = label_wrap_gen(width = 25), ncol = 2) +
-  expand_limits(y = 0, x = 0) +
-  geom_point(size = 1.5, colour = "grey30") +
-  geom_smooth(method = lm, se = FALSE, linewidth = 0.7, colour = "grey70") +
-  geom_text(
-    data = ~ filter(.x, key %in% geos),
-    aes(label = key), size = 3, hjust = 1.5) +
-  geom_point(
-    data = ~ filter(.x, key %in% geos),
-    aes(label = key), size = 1.5, colour = fpb_pal(1)[1]) +
-  geom_text(
-    data = ~ filter(.x, key == "FI"),
-    aes(label = key), size = 3, hjust = 1.5, colour = fpb_pal(2)[2]) +
-  geom_point(
-    data = ~ filter(.x, , key == "FI"),
-    aes(label = key), size = 1.5, colour = fpb_pal(2)[2]) +
-  labs(x = "Pääomakanta suhteessa tehtyihin työtunteihin", y = "Tuottavuus")
-
-save_fig(p, "palvelut-paaomaintensiteetti", height = 18)
-
-```
-
-Kuvio on mallikuvioita korkeampi (12 cm), koska paneeleita on viisi.
-Luxemburg puuttuu kaikilta toimialoilta ja Irlanti informaatio- ja
-viestintäalalta, joten ne eivät ole kuviossa.
-
-## Työvoimakustannusten suhde rajatuottoon
-
-Työvoimakustannusten suhde työn arvioituun rajatuottoon toimialoittain vuosina
-2000–2022. Suhdeluku. Lähde: omat laskelmat.
-
-```{r}
-#| label: fig-tyovoimakustannukset-rajatuotto
-
-p <- luku3("kuvio3") |>
-  ggplot(aes(values, key)) +
-  geom_col() +
-  expand_limits(x = 1) +
-  theme(axis.text.y = element_text(size = 9)) +
-  the_title_blank("xyl")
-
-save_fig(p, "tyovoimakustannukset-rajatuotto")
-
-```
-
-Toimialat ovat välilehden järjestyksessä, joka on myös mallikuvion järjestys.
-Asteikko yltää ykköseen kuten mallikuviossa: ykkösen kohdalla työvoimakustannus
-vastaa työn arvioitua rajatuottoa.
-
-## Työn tuottavuuden kasvun lähteet
-
-Työn tuottavuuden kasvun lähteet Suomen yksityisissä palveluissa. Kontribuutio
-työn tuottavuuden kasvuun, % vuodessa. Lähde: omat laskelmat.
-
-```{r}
-#| label: fig-tuottavuuskasvun-lahteet
-
-# Pylväät ovat hajotelman osat ja piste niiden summa, eli koko sektorin
-# tuottavuuden kasvu.
-k4_yht <- "Työn tuottavuus yksityisissä palveluissa"
-
-pdat <- luku3("kuvio4") |> 
-  mutate(series = stringr::str_wrap(series, 50))
-
-lvl <- levels(as_factor(pdat$series))      # kaikki 6 tasoa, k4_yht viimeisenä
-pal <- c(fpb_pal(5), NA)          # tai: c(scales::hue_pal()(5), NA)
-
-p <- pdat |>
-  filter(series != k4_yht) |>
-  ggplot(aes(key, values, fill = series)) +
-  geom_hline(yintercept = 0, linewidth = 0.3) +
-  geom_col() +
-  geom_point(data = filter(pdat, series == k4_yht),
-             aes(key, values, colour = series), shape = 16,
-             inherit.aes = FALSE) +
-  scale_fill_manual(  values = setNames(pal, lvl),                       limits = lvl, name = NULL) +
-  scale_colour_manual(values = setNames(c(rep(NA, 5), "grey10"), lvl),   limits = lvl, name = NULL) +
-  the_title_blank("xyl") +
-  the_legend_bot() +
-  guides(fill   = guide_legend(ncol = 2),
-         colour = guide_legend(ncol = 2)) +
-  theme(legend.text = element_text(size = 8)) 
-
-save_fig(p, "tuottavuuskasvun-lahteet", height = 11)
-
-```
-
-
-```{r}
-lvl <- levels(factor(pdat$series))      # kaikki 6 tasoa, k4_yht viimeisenä
-pal <- c(fpb_pal(5), NA)          # tai: c(scales::hue_pal()(5), NA)
-
-p <- pdat |>
-  filter(series != k4_yht) |>
-  ggplot(aes(key, values, fill = series)) +
-  geom_hline(yintercept = 0, linewidth = 0.3) +
-  geom_col() +
-  geom_point(data = filter(pdat, series == k4_yht),
-             aes(key, values, colour = series), shape = 16,
-             inherit.aes = FALSE) +
-  scale_fill_manual(  values = setNames(pal, lvl),                       limits = lvl, name = NULL) +
-  scale_colour_manual(values = setNames(c(rep(NA, 5), "grey10"), lvl),   limits = lvl, name = NULL) +
-  the_title_blank("xyl") +
-  the_legend_bot() +
-  guides(fill   = guide_legend(ncol = 2),
-         colour = guide_legend(ncol = 2))
-```
-
-
-Osat summautuvat pisteen arvoon. Pylväiden järjestys on välilehden
-sarakejärjestys; mallikuviossa kaksi viimeistä ovat toisin päin.
-
-## Digitaalisen intensiteetin luokat
-
-Yritysten jakautuminen digitaalisen intensiteetin luokkiin yksityisillä
-palvelualoilla. Osuus yrityksistä, %. Lähde: omat laskelmat.
-
-```{r}
-#| label: fig-digi-intensiteetti
-
-p <- luku3("kuvio11") |>
-  ggplot(aes(key, values, fill = series)) +
-  geom_col(position = "dodge") +
-  the_title_blank("xyl") +
-  the_legend_bot() +
-  guides(fill = guide_legend(nrow = 3))
-
-save_fig(p, "digi-intensiteetti", height = 10)
-
-```
-
-Toimialat ovat välilehden huomautuksen mukaan TOL 2008:n luokat: kauppa
-(G45–47), kuljetus ja varastointi (H49–53), majoitus- ja ravitsemistoiminta
-(I55–56), informaatio ja viestintä (J58–63), kiinteistöala (L68),
-asiantuntijapalvelut (M69–74 pl. 75), tukipalvelut (N77–82) sekä tietokoneiden
-ja viestintälaitteiden korjaus (S951). Välilehdellä on lisäksi luokkien osuudet
-vuosittain 2015–2021, jota mallikuvio ei käytä.
-
-# Luvun 4.2 kuviot
 
 Luvun 4.2 sarjat tulevat muiden lukujen tapaan valmiina laskettuina
 Excel-tiedostosta `data-raw/rap_2026/Luku4_2.xlsx`, jossa on yksi välilehti
@@ -818,7 +821,7 @@ p <- luku4_2("kuvio14") |>
   the_title_blank("xyl") +
   the_legend_bot()
 
-save_fig(p, "tyolliset-sektoreittain")
+save_fig(p, "14_tyolliset-sektoreittain")
 
 ```
 
@@ -842,7 +845,7 @@ p <- luku4_2("kuvio15") |>
   the_legend_bot() +
   guides(fill = guide_legend(nrow = 2))
 
-save_fig(p, "alkavat-elakkeet")
+save_fig(p, "15_alkavat-elakkeet")
 
 ```
 
@@ -858,17 +861,23 @@ Kokkinen (VTV) ja Pirkka Jalasjoki (Suomen Pankki).
 # Välilehden selitetekstit ovat skenaarion nimi ja sen määritelmä kaksoispisteen
 # erottamina. Selitteeseen jää nimi ja määritelmät ovat kuvion alla, koska
 # kokonaiset tekstit veisivät puolet kuvion korkeudesta.
-p <- luku4_2("kuvio16") |>
-  mutate(series = fct_relabel(series, str_remove, ":.*")) |>
-  ggplot(aes(time, values, colour = series)) +
-  geom_line() +
-  scale_y_continuous(n.breaks = 8,
-                     labels = scales::label_number(big.mark = " ")) +
-  the_title_blank("xyl") +
-  the_legend_bot() +
-  guides(colour = guide_legend(nrow = 2))
 
-save_fig(p, "inhimillinen-paaomakanta")
+lines <- c("Muuttumaton", "Perus", "Optimistinen")
+
+p <- luku4_2("kuvio16") |>
+  mutate(values = values / 1000) |> 
+  mutate(vars = fct_rev(as_factor(series))) %>%{
+  ggplot(droplevels(filter(., !(vars %in% lines))), aes(time, values, fill = vars)) +
+  geom_area() +
+  geom_line(data = (filter(., vars %in% lines)), aes(time, values, colour = vars, fill = NULL)) +
+  the_title_blank("xyl") +
+      the_legend_bot() +
+  scale_colour_manual(values = rev(c("grey25", "grey50", "grey75"))) +
+  geom_hline(yintercept = 0) +
+      guides(fill = guide_legend(override.aes = list(colour = NA), nrow = 3), colour = guide_legend(nrow = 3)) +
+      theme(panel.grid.major.x = element_blank())}
+
+save_fig(p, "16_inhimillinen-paaomakanta")
 
 ```
 
@@ -907,7 +916,7 @@ p <- luku5("kuvio16") |>
   the_title_blank("xyl") +
   the_legend_bot()
 
-save_fig(p, "tuottavuus-reaalipalkat")
+save_fig(p, "17_tuottavuus-reaalipalkat")
 
 ```
 
@@ -928,7 +937,7 @@ p <- luku5("kuvio17") |>
   guides(colour = guide_legend(nrow = 2)) +
   the_legend_bot()
 
-save_fig(p, "kannattavuus-tyotunnit")
+save_fig(p, "18_kannattavuus-tyotunnit")
 
 ```
 
@@ -949,7 +958,7 @@ p <- luku5("kuvio18") |>
   the_title_blank("xyl") +
   the_legend_bot()
 
-save_fig(p, "tk-panostukset")
+save_fig(p, "19_tk-panostukset")
 
 ```
 
@@ -972,7 +981,7 @@ p <- luku5("kuvio19") |>
   the_title_blank("xyl") +
   the_legend_bot()
 
-save_fig(p, "tuottavuus-yritystaso")
+save_fig(p, "20_tuottavuus-yritystaso")
 
 ```
 
@@ -1009,7 +1018,7 @@ p <- luku5("kuvio20") |>
   the_legend_bot() +
   guides(colour = guide_legend(nrow = 2))
 
-save_fig(p, "luova-tuho-teknologia")
+save_fig(p, "21_luova-tuho-teknologia")
 
 ```
 
@@ -1058,7 +1067,7 @@ p <- luku5("kuvio21") |>
   # selitteet ovat pitkiä, joten yksi sarake mahtuu kuvion leveydelle
   guides(colour = guide_legend(ncol = 1))
 
-save_fig(p, "divergenssi-hajonta")
+save_fig(p, "22_divergenssi-hajonta")
 
 ```
 
@@ -1102,7 +1111,7 @@ p <- luku6("kuvio23") |>
   the_title_blank("xyl") +
   the_legend_bot()
 
-save_fig(p, "keskittyminen-eu")
+save_fig(p, "23_keskittyminen-eu")
 
 ```
 
@@ -1130,7 +1139,7 @@ p <- luku6("kuvio24") |>
   the_title_blank("xyl") +
   the_legend_bot()
 
-save_fig(p, "keskittymisindeksit")
+save_fig(p, "24_keskittymisindeksit")
 
 ```
 
@@ -1154,7 +1163,7 @@ p <- luku6("kuvio25") |>
   the_title_blank("xyl") +
   the_legend_bot()
 
-save_fig(p, "markkinoille-tulo")
+save_fig(p, "25_markkinoille-tulo")
 
 ```
 
@@ -1176,7 +1185,7 @@ p <- luku6("kuvio26") |>
   scale_y_continuous(n.breaks = 4) +
   the_title_blank("xyl")
 
-save_fig(p, "suurimpien-pysyvyys")
+save_fig(p, "26_suurimpien-pysyvyys")
 
 ```
 
@@ -1197,7 +1206,7 @@ p <- luku6("kuvio27") |>
   the_title_blank("xyl") +
   the_legend_bot()
 
-save_fig(p, "voittomarginaalit")
+save_fig(p, "27_voittomarginaalit")
 
 ```
 
@@ -1217,7 +1226,7 @@ p <- luku6("kuvio28") |>
   the_title_blank("xyl") +
   the_legend_bot()
 
-save_fig(p, "toimintaylijaama-tuotos")
+save_fig(p, "28_toimintaylijaama-tuotos")
 
 ```
 
@@ -1244,7 +1253,7 @@ p <- luku6("kuvio29") |>
   the_title_blank("xyl") +
   the_legend_bot()
 
-save_fig(p, "kokonaistuottavuus")
+save_fig(p, "29_kokonaistuottavuus")
 
 ```
 
@@ -1263,7 +1272,7 @@ p <- luku6("kuvio30") |>
   the_title_blank("xyl") +
   the_legend_bot()
 
-save_fig(p, "tuottavuus-vertailu")
+save_fig(p, "30_tuottavuus-vertailu")
 
 ```
 
@@ -1285,7 +1294,7 @@ p <- luku6("kuvio31") |>
   expand_limits(y = c(0,10)) +
   the_title_blank("xyl")
 
-save_fig(p, "investoinnit-liikevaihto")
+save_fig(p, "31_investoinnit-liikevaihto")
 
 ```
 

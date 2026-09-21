@@ -137,7 +137,7 @@ save_fig <- function(plot, name, ...) {
   }
 
   # the margin is the same in every file, so the plot is built once
-  p <- plot + ggplot2::theme(plot.margin = ggplot2::margin(2, 2, 2, 2))
+  p <- plot + ggplot2::theme(plot.margin = ggplot2::margin(4, 2, 2, 2))
   for (device in devices) {
     ggplot2::ggsave(file.path(dir, paste0(name, ".", device)),
                     plot = p,
