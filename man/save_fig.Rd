@@ -12,14 +12,16 @@ save_fig(plot, name, ...)
 \item{name}{File name without the extension.}
 
 \item{...}{Settings for this call only, overriding \code{\link[=fig_defaults]{fig_defaults()}}: \code{dir},
-\code{year}, \code{width}, \code{height}, \code{units}, \code{dpi}, \code{device}.}
+\code{year}, \code{width}, \code{height}, \code{units}, \code{dpi}, \code{device}. \code{device} may name
+several formats; each one is written as its own file.}
 }
 \value{
 \code{plot}, so that the figure is still drawn.
 }
 \description{
-Writes a figure to \verb{<dir>/<year>/<name>.<device>}, creating the folder if it
-is not there. The year is the year of publication, so that the figures of
+Writes a figure to \verb{<dir>/<year>/<name>.<device>}, one file for each format
+in \code{device} and by default both a png and a pdf, creating the folder if it is
+not there. The year is the year of publication, so that the figures of
 successive reports stay side by side instead of overwriting each other.
 }
 \details{
@@ -35,6 +37,9 @@ file and shows the figure:
 \dontrun{
 p <- ggplot2::ggplot(mtcars, ggplot2::aes(wt, mpg)) + ggplot2::geom_point()
 save_fig(p, "wt-mpg", dir = tempdir())
+
+# only one format for this figure
+save_fig(p, "wt-mpg", dir = tempdir(), device = "png")
 }
 
 }
