@@ -1,0 +1,191 @@
+Alt-tekstit: vignettes/board_2026.qmd
+=====================================
+
+Otsikko vastaa save_fig()-kutsun tallennusnimeä, eli tiedostoja
+<otsikko>.png ja <otsikko>.pdf tässä samassa kansiossa.
+
+Kuvio "bkt-per-capita-hajotelma_tyoll" ei sisälly tähän: sen koodilohko on
+merkitty eval=FALSE, joten se ei tällä hetkellä tallennu tiedostoksi.
+
+
+1_bkt-per-capita
+-----------------
+Viivakuvio BKT:sta suhteessa väestöön (ostovoimakorjattu, vuoden 2020 $,
+log-asteikko) maittain vuodesta 1995. Suomi erottuu muista maista
+paksummalla viivalla.
+
+2_bkt-per-capita-hajotelma
+---------------------------
+Kaksi rinnakkaista viivakuviota (log-asteikko): BKT työtuntia kohden ja
+työtunnit henkeä kohden maittain vuodesta 1995.
+
+3_tuottavuus-yrityssektori
+---------------------------
+Viivakuvio yrityssektorin työn tuottavuuden (arvonlisä/työtunnit)
+kehityksestä maittain, indeksi 2007 = 100, log-asteikko.
+
+4_tuottavuus-toimialat
+-----------------------
+Kolme rinnakkaista viivakuviota työn tuottavuuden kehityksestä
+teollisuudessa, rakentamisessa ja yksityisissä palveluissa maittain,
+indeksi 2007 = 100, log-asteikko.
+
+s1_tuottavuustaso-palvelut
+---------------------------
+Viivakuvio työn tuottavuuden tasosta yksityisissä palveluissa maittain
+(2017 $ ostovoimakorjattuna, log-asteikko).
+
+5_ulc-maaritelmat
+------------------
+Viivakuvio Suomen suhteellisesta yksikkötyökustannuksesta neljällä eri
+määritelmällä (nimellinen omassa ja samassa valuutassa, vaihtosuhde-
+korjattu, reaalinen), indeksi (jakson keskiarvo = 100).
+
+6_ulc-hajotelma
+----------------
+Viivakuvio yksikkötyökustannuksen kolmesta osatekijästä (tuottavuus,
+palkansaajakorvaukset, valuuttakurssi), indeksi (jakson keskiarvo = 100).
+
+7_palvelut-tuottavuus
+----------------------
+Viivakuvio työn tuottavuuden tasosta Suomen yksityisellä
+palvelusektorilla vuosina 2000–2024 (1 000 euroa kokoaikatyöllistä
+kohden).
+
+8_palvelut-paaomaintensiteetti
+-------------------------------
+Viisi hajontakuviopaneelia, yksi palvelutoimialaa kohden: maiden työn
+tuottavuus suhteessa pääomaintensiteettiin, maat merkitty pisteinä ja
+maakoodein, Suomi korostettuna ja kussakin paneelissa lineaarinen
+trendiviiva.
+
+9_tyovoimakustannukset-rajatuotto
+-----------------------------------
+Vaakapylväskuvio kahdeksan toimialan työvoimakustannuksen suhteesta
+työn arvioituun rajatuottoon (suhdeluku; 1 = kustannus vastaa
+rajatuottoa).
+
+10_tuottavuuskasvun-lahteet
+----------------------------
+Pinottu pylväskuvio työn tuottavuuden kasvun lähteistä Suomen
+yksityisissä palveluissa neljällä ajanjaksolla: viisi hajotelman osaa
+pylväinä ja piste kunkin jakson kokonaiskasvulle.
+
+11_digi-intensiteetti
+-----------------------
+Ryhmitelty pylväskuvio yritysten jakautumisesta neljään digitaalisen
+intensiteetin luokkaan seitsemällä palvelutoimialalla, osuus
+yrityksistä, %.
+
+12_tuottavuus-julkinen
+------------------------
+Viivakuvio julkisen sektorin työn tuottavuuden kehityksestä maittain,
+indeksi 2000 = 100.
+
+13_tuottavuuskasvu-julkinen
+----------------------------
+Pylväskuvio työn tuottavuuden keskimääräisestä vuosikasvusta maittain:
+koko talous, julkinen sektori, talous ilman julkista sektoria sekä
+näiden kahden erotus.
+
+14_tyolliset-sektoreittain
+----------------------------
+Pinottu pylväskuvio työllisten määrästä julkisyhteisöissä ja
+yksityisellä sektorilla vuosina 1975–2025 (1 000 henkeä).
+
+15_alkavat-elakkeet
+---------------------
+Pinottu pylväskuvio alkavien eläkkeiden kumulatiivisesta lukumäärästä
+eläkelajeittain (vanhuuseläkkeet, täydet ja osatyökyvyttömyyseläkkeet)
+vuosina 2025–2044.
+
+16_inhimillinen-paaomakanta
+-----------------------------
+Pinottu aluekuvio inhimillisen pääomakannan kehityksestä
+koulutusasteittain (lukio, ammatillinen koulutus, alempi ja ylempi
+korkeakouluaste, tutkijakoulutus) vuosina 2000–2075, sekä kolme
+harmaata viivaa kolmen ennusteskenaarion (muuttumaton politiikka,
+perus, optimistinen) kokonaispääomakannasta.
+
+17_tuottavuus-reaalipalkat
+----------------------------
+Viivakuvio työn tuottavuuden ja reaalipalkkojen kehityksestä
+neljännesvuosittain, indeksi 2000 = 100.
+
+18_kannattavuus-tyotunnit
+---------------------------
+Viivakuvio palkkatyön kannattavuussuhteesta ja palkansaajien
+työtunneista suhteessa 20–69-vuotiaisiin, indeksi (jakson
+keskiarvo = 100).
+
+19_tk-panostukset
+-------------------
+Viivakuvio yritysten tutkimus- ja kehityspanostuksista kokoluokittain
+(yhteensä, pk-yritykset, suuret yritykset), indeksi 2004 = 100.
+
+20_tuottavuus-yritystaso
+--------------------------
+Viivakuvio tuottavuuden kehityksestä talouden tasolla ja yritysten
+tasolla (%-yksikköä, 1995 = 0); yritysten tason sarjalle on lisäksi
+lineaarinen trendiviiva.
+
+21_luova-tuho-teknologia
+--------------------------
+Kaksi rinnakkaista viivakuviota ("Yritysten tasolla" ja "Luova tuho")
+tuottavuuden kehityksestä neljällä teknologiatasolla vuodesta 1995,
+%-yksikköä.
+
+22_divergenssi-hajonta
+------------------------
+Viivakuvio divergenssikomponentista (vasen asteikko) ja tuottavuuden
+hajonnan muutoksesta (oikea asteikko), sekä havaitut että
+HP-tasoitetut sarjat.
+
+23_keskittyminen-eu
+----------------------
+Viivakuvio toimialojen keskittyneisyydestä (CR4-osuus, %) EU-maissa:
+Suomi ja BKT-painotettu Eurooppa-keskiarvo korostettuina, muut maat
+harmaina viivoina.
+
+24_keskittymisindeksit
+------------------------
+Kaksi rinnakkaista viivakuviota Suomen toimialojen
+keskittymisindekseistä: HHI-indeksi ja CR4-osuus, kummassakin
+painotettu keskiarvo sekä ala- ja yläneljänneksen rajat.
+
+25_markkinoille-tulo
+-----------------------
+Viivakuvio markkinoille tulleiden ja poistuneiden yritysten osuudesta
+Suomessa vuosina 2015–2024, %.
+
+26_suurimpien-pysyvyys
+------------------------
+Viivakuvio suurimpien yritysten markkinaosuuksien pysyvyydestä
+Suomessa vuosina 2016–2024, osuus yrityksistä, %.
+
+27_voittomarginaalit
+-----------------------
+Viivakuvio Suomen voittomarginaaleista vuosina 2014–2024: painotettu
+keskiarvo sekä ala- ja yläneljänneksen rajat, indeksi 2014 = 100.
+
+28_toimintaylijaama-tuotos
+----------------------------
+Viivakuvio toimintaylijäämän ja tuotoksen suhteesta Suomessa,
+Yhdysvalloissa ja Euroopassa vuosina 2000–2024, %.
+
+29_kokonaistuottavuus
+-----------------------
+Viivakuvio Suomen kokonaistuottavuuden kehityksestä vuosina
+2014–2024: painotettu keskiarvo sekä ala- ja yläneljänneksen rajat,
+indeksi 2014 = 100.
+
+30_tuottavuus-vertailu
+------------------------
+Viivakuvio työn tuottavuuden kehityksestä Suomessa, Yhdysvalloissa ja
+Euroopassa vuosina 2000–2024, indeksi 2000 = 100.
+
+31_investoinnit-liikevaihto
+------------------------------
+Kaksi rinnakkaista viivakuviota investointien suhteesta liikevaihtoon
+Suomessa vuosina 2014–2024, erikseen aineellisille ja aineettomille
+investoinneille, %.
