@@ -1,0 +1,42 @@
+Alt-tekstit: vignettes/public.qmd
+=================================
+
+Kuviot numeroitu ilmestymisjärjestyksessä (public.qmd:ssä kuudessa
+koodilohkossa, joista viimeinen tuottaa kaksi kuviota).
+
+Kuvio 1
+-------
+Viivakuvio julkisen sektorin (hallinto, koulutus sekä sosiaali- ja
+terveyspalvelut yhdessä) työn tuottavuuden kehityksestä maittain vuodesta
+2000, indeksi 2000 = 100. Suomi erottuu muista maista paksummalla viivalla
+ja omalla värillään.
+
+Kuvio 2
+-------
+Kolme rinnakkaista viivakuviota työn tuottavuuden kehityksestä erikseen
+hallinnossa, koulutuksessa sekä sosiaali- ja terveyspalveluissa maittain,
+indeksi 2000 = 100.
+
+Kuvio 3
+-------
+Maakohtaiset rinnakkaiset viivakuviot julkisen sektorin osuudesta koko
+talouden arvonlisäyksestä ja työtunneista, prosentteina, vuodesta 1995.
+
+Kuvio 4
+-------
+Pylväskuvio työn tuottavuuden keskimääräisestä vuosikasvusta vuosina
+1995–2024 koko taloudessa, julkisella sektorilla ja ilman julkista
+sektoria, maittain suuruusjärjestyksessä.
+
+Kuvio 5
+-------
+Pylväskuvio julkisen sektorin vaikutuksesta koko talouden työn
+tuottavuuden kasvuun maittain: koko talouden ja ilman julkista sektoria
+laskettujen keskimääräisten kasvuvauhtien erotus.
+
+Kuvio 6
+-------
+Pylväskuvio "Työn tuottavuuden kasvu keskimäärin, %": työn tuottavuuden
+keskimääräinen vuosikasvu vuosina 1998–2023 koko taloudessa, julkisella
+sektorilla, ilman julkista sektoria sekä näiden erotus, maittain
+suuruusjärjestyksessä.
