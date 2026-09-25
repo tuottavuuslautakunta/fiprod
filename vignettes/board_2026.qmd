@@ -15,7 +15,10 @@ Päivitetty: `r Sys.Date()`
 
 Raportin kuviot. Otsikot, alaotsikot ja lähdetiedot ovat kuvion yläpuolella
 tekstinä, eivät kuviossa, ja jokainen kuvio tallentuu myös png- ja
-pdf-tiedostoksi julkaisuvuoden mukaiseen kansioon.
+pdf-tiedostoksi julkaisuvuoden mukaiseen kansioon. Kansioon `figures/otsikoilla/<vuosi>/`
+tallentuu lisäksi jokaisesta kuviosta itsenäinen, 16 x 12 cm png, jossa
+otsikko, alaotsikko ja lähde ovat kuvion päällä; se on tarkoitettu
+käytettäväksi ilman raportin omaa leipätekstiä.
 
 Englanninkielinen versio samoista kuvioista on
 [Finnish Productivity Board report 2026](board_2026_en.qmd). Sen kuviot
@@ -65,6 +68,14 @@ vintage_year <- 2026
 report_year <- 2026
 
 set_fig_defaults(dir = "figures", year = report_year)
+
+# Jokaisesta kuviosta tallentuu save_fig():n rinnalla myös itsenäinen png,
+# jossa otsikko, alaotsikko ja lähde ovat kuvion päällä (save_fig_captioned()).
+# Se on tarkoitettu käytettäväksi ilman raportin omaa leipätekstiä, joten koko
+# on suurempi (16 x 12 cm) ja se tallentuu omaan alikansioonsa
+# figures/otsikoilla/<vuosi>/, ettei se kirjoita save_fig():n tiedostojen
+# päälle.
+set_fig_captioned_defaults(dir = file.path("figures", "otsikoilla"), year = report_year)
 
 dat_gdp_main <- load_dat("dat_gdp_main", vintage = vintage_year)
 
@@ -185,6 +196,10 @@ p <- dat_gdp_main |>
   the_title_blank("xyl")
 
 save_fig(p, "1_bkt-per-capita")
+save_fig_captioned(p, "1_bkt-per-capita",
+  title = "BKT per capita tasoero",
+  subtitle = "BKT suhteessa väestöön. Vuoden 2020 $ hinnoin ostovoimakorjattuna (log-asteikko).",
+  caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta.")
 
 ```
 
@@ -243,6 +258,11 @@ p <- ggplot(pdat, aes(time, values, colour = geo, linewidth = geo)) +
   the_title_blank("xyl")
 
 save_fig(p, "2_bkt-per-capita-hajotelma")
+save_fig_captioned(p, "2_bkt-per-capita-hajotelma",
+  title = "BKT per capita hajotelma",
+  subtitle = paste("Työn tuottavuus ja työtunnit. BKT työtuntia kohden vuoden 2020 $ hinnoin",
+                   "ostovoimakorjattuna ja työtunnit henkeä kohden (log-asteikko)."),
+  caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta.")
 
 ```
 
@@ -336,6 +356,10 @@ p <- dat_gva_ind_comb |>
   the_title_blank("xyl")
 
 save_fig(p, "3_tuottavuus-yrityssektori")
+save_fig_captioned(p, "3_tuottavuus-yrityssektori",
+  title = "Työn tuottavuuden kasvu yrityssektorilla",
+  subtitle = "Työn tuottavuus, arvonlisä / työtunnit. Yrityssektori, indeksi 2007 = 100 (log-asteikko).",
+  caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta.")
 
 ```
 
@@ -375,6 +399,10 @@ p <- dat_gva_ind_comb|>
   the_title_blank("xyl")
 
 save_fig(p, "4_tuottavuus-toimialat")
+save_fig_captioned(p, "4_tuottavuus-toimialat",
+  title = "Työn tuottavuuden kasvu teollisuudessa ja palveluissa",
+  subtitle = "Työn tuottavuus toimialoittain, arvonlisä / työtunnit. Indeksi 2007 = 100 (log-asteikko).",
+  caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta.")
 
 ```
 
@@ -410,6 +438,10 @@ p <- dat_gva_ind_comb|>
   the_title_blank("xyl") 
 
 save_fig(p, "s1_tuottavuustaso-palvelut")
+save_fig_captioned(p, "s1_tuottavuustaso-palvelut",
+  title = "Tuottavuuden taso palveluissa",
+  subtitle = "Työn tuottavuus palveluissa, arvonlisä / työtunnit 2017 $ ostovoimakorjattuna (log-asteikko).",
+  caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta.")
 
 ```
 
@@ -436,6 +468,10 @@ p <- pick(c("Nimellinen, omassa valuutassa" = "nulc_aper",
   labs(y = NULL)
 
 save_fig(p, "5_ulc-maaritelmat")
+save_fig_captioned(p, "5_ulc-maaritelmat",
+  title = "Yksikkökustannusindikaattorit",
+  subtitle = paste0("Suomen suhteellinen yksikkötyökustannus eri määritelmillä. ", sub_ind, "."),
+  caption = "Lähde: Eurostat, Tuottavuuslautakunta.")
 
 ```
 
@@ -465,6 +501,10 @@ p <- pick(c("Tuottavuus" = "lp_ind",
   labs(y = NULL)
 
 save_fig(p, "6_ulc-hajotelma")
+save_fig_captioned(p, "6_ulc-hajotelma",
+  title = "ULC hajotelma",
+  subtitle = paste0("Suhteellisen yksikkötyökustannuksen osatekijät. ", sub_ind, "."),
+  caption = "Lähde: Eurostat, Tuottavuuslautakunta.")
 
 ```
 
@@ -505,6 +545,11 @@ p <- luku3("kuvio1") |>
   the_title_blank("xyl")
 
 save_fig(p, "7_palvelut-tuottavuus")
+save_fig_captioned(p, "7_palvelut-tuottavuus",
+  title = "Työn tuottavuus yksityisellä palvelusektorilla",
+  subtitle = paste("Työn tuottavuus Suomen yksityisellä palvelusektorilla vuosina 2000–2024.",
+                   "1 000 euroa kokoaikatyöllistä kohden vuoden 2015 hinnoin."),
+  caption = "Lähde: Tilastokeskus; omat laskelmat.")
 
 ```
 
@@ -548,6 +593,12 @@ p <- luku3("kuvio2") |>
   labs(x = "Pääomakanta suhteessa tehtyihin työtunteihin", y = "Tuottavuus")
 
 save_fig(p, "8_palvelut-paaomaintensiteetti", height = 18)
+save_fig_captioned(p, "8_palvelut-paaomaintensiteetti",
+  title = "Tuottavuus ja pääomaintensiteetti palvelutoimialoilla",
+  subtitle = paste("Työn tuottavuus ja pääomakanta suhteessa tehtyihin työtunteihin viidellä",
+                   "palvelutoimialalla EU-maissa ja Norjassa."),
+  caption = paste("Lähde: Kaitila, Ville, \"Service Industries, Capital Intensity, and Labour",
+                  "Productivity\", ETLA Working Papers No 127."))
 
 ```
 
@@ -571,6 +622,11 @@ p <- luku3("kuvio3") |>
   the_title_blank("xyl")
 
 save_fig(p, "9_tyovoimakustannukset-rajatuotto")
+save_fig_captioned(p, "9_tyovoimakustannukset-rajatuotto",
+  title = "Työvoimakustannusten suhde rajatuottoon",
+  subtitle = paste("Työvoimakustannusten suhde työn arvioituun rajatuottoon toimialoittain",
+                   "vuosina 2000–2022. Suhdeluku."),
+  caption = "Lähde: omat laskelmat.")
 
 ```
 
@@ -613,6 +669,11 @@ p <- pdat |>
   theme(legend.text = element_text(size = 8)) 
 
 save_fig(p, "10_tuottavuuskasvun-lahteet", height = 11)
+save_fig_captioned(p, "10_tuottavuuskasvun-lahteet",
+  title = "Työn tuottavuuden kasvun lähteet",
+  subtitle = paste("Työn tuottavuuden kasvun lähteet Suomen yksityisissä palveluissa.",
+                   "Kontribuutio työn tuottavuuden kasvuun, % vuodessa."),
+  caption = "Lähde: omat laskelmat.")
 
 ```
 
@@ -658,6 +719,11 @@ p <- luku3("kuvio11") |>
   theme(legend.text = element_text(size = 8)) 
 
 save_fig(p, "11_digi-intensiteetti", height = 10)
+save_fig_captioned(p, "11_digi-intensiteetti",
+  title = "Digitaalisen intensiteetin luokat",
+  subtitle = paste("Yritysten jakautuminen digitaalisen intensiteetin luokkiin yksityisillä",
+                   "palvelualoilla. Osuus yrityksistä, %."),
+  caption = "Lähde: omat laskelmat.")
 
 ```
 
@@ -709,6 +775,11 @@ p <- dat_gva_ind_comb |>
   the_title_blank("xyl")
 
 save_fig(p, "12_tuottavuus-julkinen")
+save_fig_captioned(p, "12_tuottavuus-julkinen",
+  title = "Julkisen sektorin tuottavuus",
+  subtitle = paste("Työn tuottavuus julkisella sektorilla, arvonlisä / työtunnit vuoden 2020 $",
+                   "hinnoin ostovoimakorjattuna. Indeksi, 2000 = 100."),
+  caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta.")
 
 ```
 
@@ -786,6 +857,13 @@ p <- pdat |>
   the_title_blank("xyl")
 
 save_fig(p, "13_tuottavuuskasvu-julkinen")
+save_fig_captioned(p, "13_tuottavuuskasvu-julkinen",
+  title = "Tuottavuuden kasvu julkisen sektorin kanssa ja ilman",
+  subtitle = paste0(
+    "Työn tuottavuuden keskimääräinen vuosikasvu koko taloudessa, julkisella ",
+    "sektorilla ja ilman julkista sektoria sekä koko talouden ja ilman julkista ",
+    "sektoria laskettujen kasvuvauhtien erotus. Keskiarvo ", public_period_lab, ", %."),
+  caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta.")
 
 ```
 
@@ -822,6 +900,10 @@ p <- luku4_2("kuvio14") |>
   the_legend_bot()
 
 save_fig(p, "14_tyolliset-sektoreittain")
+save_fig_captioned(p, "14_tyolliset-sektoreittain",
+  title = "Työlliset julkisyhteisöissä ja yksityisellä sektorilla",
+  subtitle = "Työllisten määrä julkisyhteisöissä ja yksityisellä sektorilla. 1 000 henkeä.",
+  caption = "Lähde: Tilastokeskus, kansantalouden tilinpito.")
 
 ```
 
@@ -846,6 +928,10 @@ p <- luku4_2("kuvio15") |>
   guides(fill = guide_legend(nrow = 2))
 
 save_fig(p, "15_alkavat-elakkeet")
+save_fig_captioned(p, "15_alkavat-elakkeet",
+  title = "Alkavat eläkkeet",
+  subtitle = "Alkavat eläkkeet eläkelajeittain 2025–2044. Kumulatiivinen lukumäärä.",
+  caption = "Lähde: Keva (2025).")
 
 ```
 
@@ -878,6 +964,11 @@ p <- luku4_2("kuvio16") |>
       theme(panel.grid.major.x = element_blank())}
 
 save_fig(p, "16_inhimillinen-paaomakanta")
+save_fig_captioned(p, "16_inhimillinen-paaomakanta",
+  title = "Inhimillinen pääomakanta",
+  subtitle = paste("Inhimillisen pääomakannan kehitys kolmessa eri ennusteskenaariossa 2024–2075.",
+                   "Milj. euroa, volyymi, viitevuosi 2015."),
+  caption = "Lähteet: Tilastokeskus, laskelmat Arto Kokkinen (VTV) ja Pirkka Jalasjoki (Suomen Pankki).")
 
 ```
 
@@ -917,6 +1008,11 @@ p <- luku5("kuvio16") |>
   the_legend_bot()
 
 save_fig(p, "17_tuottavuus-reaalipalkat")
+save_fig_captioned(p, "17_tuottavuus-reaalipalkat",
+  title = "Työn tuottavuus ja reaalipalkat",
+  subtitle = paste("Työn tuottavuus ja reaalipalkat arvonlisäyksen hinnoin. Indeksi, 2000 = 100,",
+                   "neljännesvuosittain."),
+  caption = "Lähde: Tuottavuuslautakunnan omat laskelmat.")
 
 ```
 
@@ -938,6 +1034,12 @@ p <- luku5("kuvio17") |>
   the_legend_bot()
 
 save_fig(p, "18_kannattavuus-tyotunnit")
+save_fig_captioned(p, "18_kannattavuus-tyotunnit",
+  title = "Palkkatyön kannattavuus ja työtunnit",
+  subtitle = paste0(
+    "Palkkatyön kannattavuussuhde ja palkansaajien tehdyt työtunnit suhteessa ",
+    "20-69-vuotiaisiin. ", sub_ind_k17, "."),
+  caption = "Lähde: Kansantalouden tilinpito ja AMECO-tietokanta.")
 
 ```
 
@@ -959,6 +1061,11 @@ p <- luku5("kuvio18") |>
   the_legend_bot()
 
 save_fig(p, "19_tk-panostukset")
+save_fig_captioned(p, "19_tk-panostukset",
+  title = "Tutkimus- ja kehityspanostukset kokoluokittain",
+  subtitle = paste("Yritysten panostukset tutkimus- ja kehitystoimintaan tutkimus- ja",
+                   "kehityshenkilöstön työvuosina mitattuna. Indeksi, 2004 = 100."),
+  caption = "Lähde: Kansantalouden tilinpito.")
 
 ```
 
@@ -982,6 +1089,10 @@ p <- luku5("kuvio19") |>
   the_legend_bot()
 
 save_fig(p, "20_tuottavuus-yritystaso")
+save_fig_captioned(p, "20_tuottavuus-yritystaso",
+  title = "Tuottavuuden kehitys yrityssektorin ja yritysten tasolla",
+  subtitle = "Tuottavuuden kehitys yrityssektorin tasolla ja yritysten tasolla. %-yksikköä, 1995 = 0.",
+  caption = "Lähde: Tuottavuuslautakunnan omat laskelmat.")
 
 ```
 
@@ -1019,6 +1130,11 @@ p <- luku5("kuvio20") |>
   guides(colour = guide_legend(nrow = 2))
 
 save_fig(p, "21_luova-tuho-teknologia")
+save_fig_captioned(p, "21_luova-tuho-teknologia",
+  title = "Yritysten taso ja luova tuho teknologiatason mukaan",
+  subtitle = paste("Tuottavuuden kehitys teknologiatason mukaan, yritysten tasolla ja luovan tuhon",
+                   "kautta. %-yksikköä, 1995 = 0."),
+  caption = "Lähde: Tuottavuuslautakunnan omat laskelmat.")
 
 ```
 
@@ -1068,6 +1184,11 @@ p <- luku5("kuvio21") |>
   guides(colour = guide_legend(ncol = 1))
 
 save_fig(p, "22_divergenssi-hajonta")
+save_fig_captioned(p, "22_divergenssi-hajonta",
+  title = "Divergenssikomponentti ja hajonnan muutos",
+  subtitle = paste("Divergenssikomponentin vaikutus (vasen asteikko) ja tuottavuuden hajonnan",
+                   "muutos (oikea asteikko), havaitut ja HP-tasoitetut sarjat."),
+  caption = "Lähde: Tuottavuuslautakunnan omat laskelmat.")
 
 ```
 
@@ -1112,6 +1233,10 @@ p <- luku6("kuvio23") |>
   the_legend_bot()
 
 save_fig(p, "23_keskittyminen-eu")
+save_fig_captioned(p, "23_keskittyminen-eu",
+  title = "Toimialojen keskittyneisyys EU-maissa",
+  subtitle = "Toimialojen keskittyneisyyden kehitys eri EU-maissa. CR4-osuus, %.",
+  caption = "Lähde: Anttinen ym. (2026) Calligaris ym. (2024) lukuihin perustuen.")
 
 ```
 
@@ -1140,6 +1265,10 @@ p <- luku6("kuvio24") |>
   the_legend_bot()
 
 save_fig(p, "24_keskittymisindeksit")
+save_fig_captioned(p, "24_keskittymisindeksit",
+  title = "Toimialojen keskittymisindeksit Suomessa",
+  subtitle = "Toimialojen keskittymisindeksit Suomessa 2014–2024. HHI-indeksi ja CR4-osuus, %.",
+  caption = "Lähde: Anttinen ym. (2026).")
 
 ```
 
@@ -1164,6 +1293,10 @@ p <- luku6("kuvio25") |>
   the_legend_bot()
 
 save_fig(p, "25_markkinoille-tulo")
+save_fig_captioned(p, "25_markkinoille-tulo",
+  title = "Markkinoille tulo ja poistuminen",
+  subtitle = "Markkinoille tulleiden ja poistuneiden yritysten osuus Suomessa 2014–2024. Osuus yrityksistä, %.",
+  caption = "Lähde: Anttinen ym. (2026).")
 
 ```
 
@@ -1186,6 +1319,10 @@ p <- luku6("kuvio26") |>
   the_title_blank("xyl")
 
 save_fig(p, "26_suurimpien-pysyvyys")
+save_fig_captioned(p, "26_suurimpien-pysyvyys",
+  title = "Suurimpien yritysten pysyvyys",
+  subtitle = "Suurimpien yritysten markkinaosuuksien pysyvyys Suomessa 2014–2024. Osuus yrityksistä, %.",
+  caption = "Lähde: Anttinen ym. (2026).")
 
 ```
 
@@ -1207,6 +1344,10 @@ p <- luku6("kuvio27") |>
   the_legend_bot()
 
 save_fig(p, "27_voittomarginaalit")
+save_fig_captioned(p, "27_voittomarginaalit",
+  title = "Voittomarginaalit",
+  subtitle = "Voittomarginaalit Suomessa 2014–2023. Indeksi, 2014 = 100.",
+  caption = "Lähde: Anttinen ym. (2026).")
 
 ```
 
@@ -1227,6 +1368,11 @@ p <- luku6("kuvio28") |>
   the_legend_bot()
 
 save_fig(p, "28_toimintaylijaama-tuotos")
+save_fig_captioned(p, "28_toimintaylijaama-tuotos",
+  title = "Toimintaylijäämän ja tuotoksen suhde",
+  subtitle = paste("Toimintaylijäämän ja tuotoksen suhde Suomessa, Yhdysvalloissa ja Euroopassa",
+                   "vuosina 2000–2024. %, yrityssektori ilman kiinteistöalaa."),
+  caption = "Lähde: OECD:n tietokannat.")
 
 ```
 
@@ -1254,6 +1400,10 @@ p <- luku6("kuvio29") |>
   the_legend_bot()
 
 save_fig(p, "29_kokonaistuottavuus")
+save_fig_captioned(p, "29_kokonaistuottavuus",
+  title = "Kokonaistuottavuuden kehitys",
+  subtitle = "Kokonaistuottavuuden kehitys Suomessa 2014–2024. Indeksi, 2014 = 100.",
+  caption = "Lähde: Anttinen ym. (2026).")
 
 ```
 
@@ -1273,6 +1423,10 @@ p <- luku6("kuvio30") |>
   the_legend_bot()
 
 save_fig(p, "30_tuottavuus-vertailu")
+save_fig_captioned(p, "30_tuottavuus-vertailu",
+  title = "Työn tuottavuus Suomessa, Yhdysvalloissa ja Euroopassa",
+  subtitle = "Työn tuottavuus Suomessa, Yhdysvalloissa ja Euroopassa vuosina 2000–2024. Indeksi, 2000 = 100.",
+  caption = "Lähde: OECD:n tietokannat.")
 
 ```
 
@@ -1295,6 +1449,11 @@ p <- luku6("kuvio31") |>
   the_title_blank("xyl")
 
 save_fig(p, "31_investoinnit-liikevaihto")
+save_fig_captioned(p, "31_investoinnit-liikevaihto",
+  title = "Investoinnit suhteessa liikevaihtoon",
+  subtitle = paste("Investointien ja liikevaihdon suhde Suomessa 2014–2024. Investoinnit suhteessa",
+                   "liikevaihtoon, %."),
+  caption = "Lähde: Anttinen ym. (2026).")
 
 ```
 

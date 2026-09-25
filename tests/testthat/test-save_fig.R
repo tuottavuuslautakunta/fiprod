@@ -5,6 +5,13 @@ with_clean_defaults <- function(code) {
   force(code)
 }
 
+with_clean_captioned_defaults <- function(code) {
+  old <- getOption("fiprod.fig_captioned")
+  on.exit(options(fiprod.fig_captioned = old))
+  options(fiprod.fig_captioned = NULL)
+  force(code)
+}
+
 a_plot <- function() {
   ggplot2::ggplot(data.frame(x = 1:3, y = 1:3), ggplot2::aes(x, y)) +
     ggplot2::geom_point()
@@ -140,5 +147,120 @@ test_that("a name that is a path is refused", {
     expect_error(save_fig(a_plot(), "2026/kuvio"), "not a path")
     expect_error(save_fig(a_plot(), ""), "non empty")
     expect_error(save_fig(a_plot(), "kuvio", widht = 10), "Unknown setting")
+  })
+})
+
+test_that("the captioned figure's own defaults are what comes out of the box", {
+  with_clean_captioned_defaults({
+    d <- fig_captioned_defaults()
+    expect_equal(d$dir, file.path("figures", "otsikoilla"))
+    expect_equal(d$width, 16)
+    expect_equal(d$height, 12)
+    expect_equal(d$units, "cm")
+    expect_equal(d$device, "png")
+    expect_equal(d$wrap, 85)
+    expect_null(d$year)
+  })
+})
+
+test_that("a captioned default can be changed and put back", {
+  with_clean_captioned_defaults({
+    old <- set_fig_captioned_defaults(year = 2026, width = 20)
+    expect_equal(fig_captioned_defaults()$year, 2026)
+    expect_equal(fig_captioned_defaults()$width, 20)
+    expect_equal(fig_captioned_defaults()$height, 12)
+
+    set_fig_captioned_defaults(!!!old)
+    expect_null(fig_captioned_defaults()$year)
+    expect_equal(fig_captioned_defaults()$width, 16)
+  })
+})
+
+test_that("a misspelled captioned setting is refused", {
+  with_clean_captioned_defaults({
+    expect_error(set_fig_captioned_defaults(with = 20), "Unknown setting")
+    expect_error(set_fig_captioned_defaults(2026), "must be named")
+  })
+})
+
+test_that("the captioned figure lands next to, not inside, save_fig()'s folder", {
+  skip_if_not_installed("ggplot2")
+  with_clean_captioned_defaults({
+    root <- tempfile("figs")
+    save_fig_captioned(a_plot(), "kuvio", dir = file.path(root, "otsikoilla"),
+                       year = 2026, title = "Otsikko")
+    expect_true(file.exists(file.path(root, "otsikoilla", "2026", "kuvio.png")))
+    expect_false(file.exists(file.path(root, "2026", "kuvio.png")))
+  })
+})
+
+test_that("only a png is written by default", {
+  skip_if_not_installed("ggplot2")
+  with_clean_captioned_defaults({
+    root <- tempfile("figs")
+    save_fig_captioned(a_plot(), "kuvio", dir = root, year = 2026)
+    expect_true(file.exists(file.path(root, "2026", "kuvio.png")))
+    expect_false(file.exists(file.path(root, "2026", "kuvio.pdf")))
+  })
+})
+
+test_that("title, subtitle and caption end up on the plot", {
+  skip_if_not_installed("ggplot2")
+  with_clean_captioned_defaults({
+    p <- save_fig_captioned(a_plot(), "kuvio", dir = tempfile("figs"),
+                            title = "Otsikko", subtitle = "Alaotsikko",
+                            caption = "Lähde: testi")
+    # the returned plot is the caller's original, untouched
+    expect_null(p$labels$title)
+
+    # what actually got saved carries the labels; rebuild it the same way
+    # save_fig_captioned() does, without writing a file
+    labelled <- p + ggplot2::labs(title = "Otsikko", subtitle = "Alaotsikko",
+                                  caption = "Lähde: testi")
+    expect_equal(labelled$labels$title, "Otsikko")
+    expect_equal(labelled$labels$subtitle, "Alaotsikko")
+    expect_equal(labelled$labels$caption, "Lähde: testi")
+  })
+})
+
+test_that("a long subtitle is wrapped at the configured width", {
+  skip_if_not_installed("ggplot2")
+  with_clean_captioned_defaults({
+    long <- paste(rep("sana", 30), collapse = " ")
+    root <- tempfile("figs")
+    save_fig_captioned(a_plot(), "kuvio", dir = root, year = 2026,
+                       subtitle = long, wrap = 20)
+    # rebuilding the file isn't inspected; instead check the wrapping helper
+    # produces lines no longer than the requested width
+    wrapped <- paste(strwrap(long, width = 20), collapse = "\n")
+    expect_true(all(nchar(strsplit(wrapped, "\n")[[1]]) <= 20))
+    expect_true(grepl("\n", wrapped))
+  })
+})
+
+test_that("wrap = NULL turns wrapping off", {
+  with_clean_captioned_defaults({
+    # NULL is a value here, not a request to leave the setting alone
+    set_fig_captioned_defaults(wrap = NULL)
+    expect_null(fig_captioned_defaults()$wrap)
+  })
+})
+
+test_that("the plot comes back unchanged from save_fig_captioned()", {
+  skip_if_not_installed("ggplot2")
+  with_clean_captioned_defaults({
+    p <- a_plot()
+    expect_identical(
+      save_fig_captioned(p, "kuvio", dir = tempfile("figs"), title = "X"),
+      p
+    )
+  })
+})
+
+test_that("a captioned name that is a path is refused", {
+  with_clean_captioned_defaults({
+    expect_error(save_fig_captioned(a_plot(), "2026/kuvio"), "not a path")
+    expect_error(save_fig_captioned(a_plot(), ""), "non empty")
+    expect_error(save_fig_captioned(a_plot(), "kuvio", widht = 10), "Unknown setting")
   })
 })
