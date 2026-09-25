@@ -12,12 +12,13 @@ save_fig_captioned(plot, name, title = NULL, subtitle = NULL, caption = NULL, ..
 \item{name}{File name without the extension, normally the same name used
 for the same plot's \code{\link[=save_fig]{save_fig()}} call.}
 
-\item{title, subtitle, caption}{Text for \code{\link[ggplot2:labs]{ggplot2::labs()}}. Long subtitles and
-captions are wrapped at \code{wrap} characters; \code{NULL} leaves that label unset.}
+\item{title, subtitle, caption}{Text for \code{\link[ggplot2:labs]{ggplot2::labs()}}. \code{NULL} leaves
+that label unset.}
 
 \item{...}{Settings for this call only, overriding
 \code{\link[=fig_captioned_defaults]{fig_captioned_defaults()}}: \code{dir}, \code{year}, \code{width}, \code{height}, \code{units},
-\code{dpi}, \code{device}, \code{wrap}.}
+\code{dpi}, \code{device}, \code{title_size}, \code{subtitle_size}, \code{text_size},
+\code{caption_size}, \code{title_wrap}, \code{subtitle_wrap}, \code{caption_wrap}.}
 }
 \value{
 \code{plot}, so that the figure is still drawn.
@@ -48,6 +49,22 @@ save_fig_captioned(p, "bkt-per-capita",
 Blanking the axis titles and legend title with \code{the_title_blank("xyl")}
 (as the report's figures do) leaves the plot title, subtitle and caption
 alone, so the same plot can be passed to both functions without change.
+
+The figure is bigger than \code{\link[=save_fig]{save_fig()}}'s, so its text is set bigger too,
+the title by the most: by default the title grows from about 12pt to 20pt
+(a plot built at the report's usual \code{theme_fpb(base_size = 11)}), against a
+more modest lift for the axis text, legend text and facet strip text (to
+12pt) and the caption (to 10pt). A figure's own \code{theme()} overrides for
+these elements (a smaller legend text to fit a long legend, say) are
+replaced along with the rest, so every captioned figure ends up with the
+same text sizes regardless of what the small report figure needed.
+
+Each of \code{title}, \code{subtitle} and \code{caption} is wrapped to its own line width
+(\code{title_wrap}, \code{subtitle_wrap}, \code{caption_wrap}) before being set, so that
+growing the text (or narrowing the figure) doesn't just run it off the
+edge; the defaults are sized for the default \code{title_size}/\code{subtitle_size}/
+\code{caption_size} at the default \code{width}, so a call that changes one of those
+should normally change the matching \verb{_wrap} setting too.
 }
 \examples{
 \dontrun{

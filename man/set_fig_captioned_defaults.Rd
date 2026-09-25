@@ -11,8 +11,11 @@ fig_captioned_defaults()
 }
 \arguments{
 \item{...}{Named settings to change: \code{dir}, \code{year}, \code{width}, \code{height},
-\code{units}, \code{dpi}, \code{device} or \code{wrap}. \code{year = NULL} means the current year;
-\code{wrap = NULL} turns off wrapping.}
+\code{units}, \code{dpi}, \code{device}, \code{title_size}, \code{subtitle_size}, \code{text_size},
+\code{caption_size}, \code{title_wrap}, \code{subtitle_wrap} or \code{caption_wrap}.
+\code{year = NULL} means the current year; any \verb{_size} or \verb{_wrap} set to
+\code{NULL} leaves that element as the plot already has it (for a \verb{_size}) or
+turns off its wrapping (for a \verb{_wrap}).}
 }
 \value{
 \code{set_fig_captioned_defaults()} returns the previous settings
@@ -22,7 +25,9 @@ settings in force.
 \description{
 The settings \code{\link[=save_fig_captioned]{save_fig_captioned()}} uses when it is not told otherwise: the
 folder, the year that names the subfolder, the size and resolution of the
-file, and the width at which the title, subtitle and caption are wrapped.
+file, the point size of the title, subtitle, axis/legend/strip text and
+caption, and the line width each of the title, subtitle and caption is
+wrapped at.
 }
 \examples{
 fig_captioned_defaults()
