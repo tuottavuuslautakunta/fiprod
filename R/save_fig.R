@@ -28,7 +28,20 @@
   units  = "cm",
   dpi    = 300,
   device = "png",
-  wrap   = 85           # subtitle/caption line width in characters; NULL: no wrapping
+  # Text sizes in points. A captioned figure is bigger than the report's own,
+  # so its text needs to grow with it, the title most of all; NULL leaves that
+  # element at whatever size the plot already has.
+  title_size    = 20,
+  subtitle_size = 14,
+  text_size     = 12,   # axis text, legend text, facet strip text
+  caption_size  = 10,
+  # Line width in characters for title/subtitle/caption, tuned for the sizes
+  # above at the width set for the figure; NULL turns wrapping off for that
+  # element. A bigger title/subtitle/caption or a narrower figure needs a
+  # smaller number here, or the text runs off the edge instead of wrapping.
+  title_wrap    = 40,
+  subtitle_wrap = 65,
+  caption_wrap  = 90
 )
 
 #' Defaults for saving report figures
@@ -89,12 +102,17 @@ fig_defaults <- function() {
 #'
 #' The settings [save_fig_captioned()] uses when it is not told otherwise: the
 #' folder, the year that names the subfolder, the size and resolution of the
-#' file, and the width at which the title, subtitle and caption are wrapped.
+#' file, the point size of the title, subtitle, axis/legend/strip text and
+#' caption, and the line width each of the title, subtitle and caption is
+#' wrapped at.
 #'
 #' @inheritParams set_fig_defaults
 #' @param ... Named settings to change: `dir`, `year`, `width`, `height`,
-#'   `units`, `dpi`, `device` or `wrap`. `year = NULL` means the current year;
-#'   `wrap = NULL` turns off wrapping.
+#'   `units`, `dpi`, `device`, `title_size`, `subtitle_size`, `text_size`,
+#'   `caption_size`, `title_wrap`, `subtitle_wrap` or `caption_wrap`.
+#'   `year = NULL` means the current year; any `_size` or `_wrap` set to
+#'   `NULL` leaves that element as the plot already has it (for a `_size`) or
+#'   turns off its wrapping (for a `_wrap`).
 #'
 #' @return `set_fig_captioned_defaults()` returns the previous settings
 #'   invisibly, so they can be restored. `fig_captioned_defaults()` returns the
@@ -263,14 +281,31 @@ save_fig <- function(plot, name, ...) {
 #' (as the report's figures do) leaves the plot title, subtitle and caption
 #' alone, so the same plot can be passed to both functions without change.
 #'
+#' The figure is bigger than [save_fig()]'s, so its text is set bigger too,
+#' the title by the most: by default the title grows from about 12pt to 20pt
+#' (a plot built at the report's usual `theme_fpb(base_size = 11)`), against a
+#' more modest lift for the axis text, legend text and facet strip text (to
+#' 12pt) and the caption (to 10pt). A figure's own `theme()` overrides for
+#' these elements (a smaller legend text to fit a long legend, say) are
+#' replaced along with the rest, so every captioned figure ends up with the
+#' same text sizes regardless of what the small report figure needed.
+#'
+#' Each of `title`, `subtitle` and `caption` is wrapped to its own line width
+#' (`title_wrap`, `subtitle_wrap`, `caption_wrap`) before being set, so that
+#' growing the text (or narrowing the figure) doesn't just run it off the
+#' edge; the defaults are sized for the default `title_size`/`subtitle_size`/
+#' `caption_size` at the default `width`, so a call that changes one of those
+#' should normally change the matching `_wrap` setting too.
+#'
 #' @param plot A plot object, normally a `ggplot`.
 #' @param name File name without the extension, normally the same name used
 #'   for the same plot's [save_fig()] call.
-#' @param title,subtitle,caption Text for [ggplot2::labs()]. Long subtitles and
-#'   captions are wrapped at `wrap` characters; `NULL` leaves that label unset.
+#' @param title,subtitle,caption Text for [ggplot2::labs()]. `NULL` leaves
+#'   that label unset.
 #' @param ... Settings for this call only, overriding
 #'   [fig_captioned_defaults()]: `dir`, `year`, `width`, `height`, `units`,
-#'   `dpi`, `device`, `wrap`.
+#'   `dpi`, `device`, `title_size`, `subtitle_size`, `text_size`,
+#'   `caption_size`, `title_wrap`, `subtitle_wrap`, `caption_wrap`.
 #'
 #' @return `plot`, so that the figure is still drawn.
 #'
@@ -304,16 +339,36 @@ save_fig_captioned <- function(plot, name, title = NULL, subtitle = NULL,
   }
   for (nm in names(new)) opts[nm] <- list(new[[nm]])
 
-  wrap <- opts$wrap
-  if (!is.null(wrap)) {
-    wrap_lab <- function(x) if (is.null(x)) NULL else paste(strwrap(x, width = wrap), collapse = "\n")
-    subtitle <- wrap_lab(subtitle)
-    caption  <- wrap_lab(caption)
+  wrap_lab <- function(x, width) {
+    if (is.null(x) || is.null(width)) return(x)
+    paste(strwrap(x, width = width), collapse = "\n")
   }
+  title    <- wrap_lab(title,    opts$title_wrap)
+  subtitle <- wrap_lab(subtitle, opts$subtitle_wrap)
+  caption  <- wrap_lab(caption,  opts$caption_wrap)
 
+  # element_text(size = NULL) leaves that property as the plot's own theme
+  # already has it, so a NULL setting is "don't touch this element" here too.
+  # axis.text.x/.y are set explicitly, not just their parent axis.text, so a
+  # figure's own smaller override for one of them (to fit a long axis label in
+  # the small report figure) is replaced as well, not left to shine through
+  # underneath the bigger one. legend.title is left alone: most figures blank
+  # it with the_title_blank("xyl"), and a non-blank element_text() here would
+  # un-blank it (ggplot2 themes can turn element_blank() back on this way).
+  et <- function(size) ggplot2::element_text(size = size)
   p <- plot +
     ggplot2::labs(title = title, subtitle = subtitle, caption = caption) +
-    ggplot2::theme(plot.margin = ggplot2::margin(4, 2, 2, 2))
+    ggplot2::theme(
+      plot.title      = et(opts$title_size),
+      plot.subtitle   = et(opts$subtitle_size),
+      plot.caption    = et(opts$caption_size),
+      axis.text       = et(opts$text_size),
+      axis.text.x     = et(opts$text_size),
+      axis.text.y     = et(opts$text_size),
+      legend.text     = et(opts$text_size),
+      strip.text      = et(opts$text_size),
+      plot.margin     = ggplot2::margin(4, 2, 2, 2)
+    )
   .save_fig_files(p, name, opts)
 
   plot
