@@ -15,7 +15,10 @@ Päivitetty: `r Sys.Date()`
 
 Raportin kuviot. Otsikot, alaotsikot ja lähdetiedot ovat kuvion yläpuolella
 tekstinä, eivät kuviossa, ja jokainen kuvio tallentuu myös png- ja
-pdf-tiedostoksi julkaisuvuoden mukaiseen kansioon.
+pdf-tiedostoksi julkaisuvuoden mukaiseen kansioon. Kansioon `figures/otsikoilla/<vuosi>/`
+tallentuu lisäksi jokaisesta kuviosta itsenäinen, 16 x 12 cm png, jossa
+otsikko, alaotsikko ja lähde ovat kuvion päällä; se on tarkoitettu
+käytettäväksi ilman raportin omaa leipätekstiä.
 
 Englanninkielinen versio samoista kuvioista on
 [Finnish Productivity Board report 2026](board_2026_en.qmd). Sen kuviot
