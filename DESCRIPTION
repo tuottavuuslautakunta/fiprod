@@ -20,7 +20,8 @@ Suggests:
     ggplot2,
     ggcustom,
     testthat (>= 3.0.0),
-    here (>= 1.0.1)
+    here (>= 1.0.1),
+    writexl
 VignetteBuilder: knitr, quarto
 Imports: 
     dplyr,
