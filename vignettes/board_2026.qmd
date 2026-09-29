@@ -357,8 +357,8 @@ p <- dat_gva_ind_comb |>
 
 save_fig(p, "3_tuottavuus-yrityssektori")
 save_fig_captioned(p, "3_tuottavuus-yrityssektori",
-  title = "Työn tuottavuuden kasvu yrityssektorilla",
-  subtitle = "Työn tuottavuus, arvonlisä / työtunnit. Yrityssektori, indeksi 2007 = 100 (log-asteikko).",
+  title = "Työn tuottavuus yrityssektorilla",
+  subtitle = "arvonlisä / työtunnit. Yrityssektori, indeksi 2007 = 100, log-asteikko",
   caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta.")
 
 ```
@@ -440,7 +440,7 @@ p <- dat_gva_ind_comb|>
 save_fig(p, "s1_tuottavuustaso-palvelut")
 save_fig_captioned(p, "s1_tuottavuustaso-palvelut",
   title = "Tuottavuuden taso palveluissa",
-  subtitle = "Työn tuottavuus palveluissa, arvonlisä / työtunnit 2017 $ ostovoimakorjattuna (log-asteikko).",
+  subtitle = "Arvonlisä / työtunnit, 2017 $ ostovoimakorjattuna, log-asteikko",
   caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta.")
 
 ```
@@ -470,8 +470,8 @@ p <- pick(c("Nimellinen, omassa valuutassa" = "nulc_aper",
 save_fig(p, "5_ulc-maaritelmat")
 save_fig_captioned(p, "5_ulc-maaritelmat",
   title = "Yksikkökustannusindikaattorit",
-  subtitle = paste0("Suomen suhteellinen yksikkötyökustannus eri määritelmillä. ", sub_ind, "."),
-  caption = "Lähde: Eurostat, Tuottavuuslautakunta.")
+  subtitle = sub_ind,
+  caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta.")
 
 ```
 
@@ -1062,9 +1062,8 @@ p <- luku5("kuvio18") |>
 
 save_fig(p, "19_tk-panostukset")
 save_fig_captioned(p, "19_tk-panostukset",
-  title = "Tutkimus- ja kehityspanostukset kokoluokittain",
-  subtitle = paste("Yritysten panostukset tutkimus- ja kehitystoimintaan tutkimus- ja",
-                   "kehityshenkilöstön työvuosina mitattuna. Indeksi, 2004 = 100."),
+  title = "T&K-panostukset kokoluokittain",
+  subtitle = paste("Yritysten kehityshenkilöstön työpanos, Indeksi, 2004 = 100"),
   caption = "Lähde: Kansantalouden tilinpito.")
 
 ```
@@ -1321,7 +1320,7 @@ p <- luku6("kuvio26") |>
 save_fig(p, "26_suurimpien-pysyvyys")
 save_fig_captioned(p, "26_suurimpien-pysyvyys",
   title = "Suurimpien yritysten pysyvyys",
-  subtitle = "Suurimpien yritysten markkinaosuuksien pysyvyys Suomessa 2014–2024. Osuus yrityksistä, %.",
+  subtitle = "Suurimpien yritysten markkinaosuuksien pysyvyys, osuus yrityksistä, %",
   caption = "Lähde: Anttinen ym. (2026).")
 
 ```
