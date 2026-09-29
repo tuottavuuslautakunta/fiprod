@@ -12,6 +12,13 @@ with_clean_captioned_defaults <- function(code) {
   force(code)
 }
 
+with_clean_data_defaults <- function(code) {
+  old <- getOption("fiprod.fig_data")
+  on.exit(options(fiprod.fig_data = old))
+  options(fiprod.fig_data = NULL)
+  force(code)
+}
+
 a_plot <- function() {
   ggplot2::ggplot(data.frame(x = 1:3, y = 1:3), ggplot2::aes(x, y)) +
     ggplot2::geom_point()
@@ -337,5 +344,106 @@ test_that("a captioned name that is a path is refused", {
     expect_error(save_fig_captioned(a_plot(), "2026/kuvio"), "not a path")
     expect_error(save_fig_captioned(a_plot(), ""), "non empty")
     expect_error(save_fig_captioned(a_plot(), "kuvio", widht = 10), "Unknown setting")
+  })
+})
+
+a_long_df <- function() {
+  data.frame(
+    time   = rep(2020:2022, 2),
+    geo    = rep(c("FI", "SE"), each = 3),
+    values = c(1, 2, 3, 4, 5, 6)
+  )
+}
+
+test_that("the figure data's own defaults are what comes out of the box", {
+  with_clean_data_defaults({
+    d <- fig_data_defaults()
+    expect_equal(d$dir, file.path("figures", "data"))
+    expect_null(d$year)
+  })
+})
+
+test_that("a data default can be changed and put back", {
+  with_clean_data_defaults({
+    old <- set_fig_data_defaults(year = 2026, dir = "data")
+    expect_equal(fig_data_defaults()$year, 2026)
+    expect_equal(fig_data_defaults()$dir, "data")
+
+    set_fig_data_defaults(!!!old)
+    expect_null(fig_data_defaults()$year)
+    expect_equal(fig_data_defaults()$dir, file.path("figures", "data"))
+  })
+})
+
+test_that("a misspelled data setting is refused", {
+  with_clean_data_defaults({
+    expect_error(set_fig_data_defaults(with = 20), "Unknown setting")
+    expect_error(set_fig_data_defaults(2026), "must be named")
+  })
+})
+
+test_that("a plot's own data is widened by names_from and written to xlsx", {
+  skip_if_not_installed("ggplot2")
+  skip_if_not_installed("writexl")
+  skip_if_not_installed("readxl")
+  with_clean_data_defaults({
+    p <- ggplot2::ggplot(a_long_df(), ggplot2::aes(time, values, colour = geo)) +
+      ggplot2::geom_line()
+    root <- tempfile("figs")
+    save_fig_data(p, "kuvio", dir = root, year = 2026, names_from = "geo")
+
+    out <- readxl::read_xlsx(file.path(root, "2026", "kuvio.xlsx"))
+    expect_setequal(names(out), c("time", "FI", "SE"))
+    expect_equal(out$FI[out$time == 2020], 1)
+    expect_equal(out$SE[out$time == 2020], 4)
+  })
+})
+
+test_that("names_from = NULL writes the data as it is, without widening", {
+  skip_if_not_installed("writexl")
+  skip_if_not_installed("readxl")
+  with_clean_data_defaults({
+    root <- tempfile("figs")
+    save_fig_data(a_long_df(), "kuvio", dir = root, year = 2026)
+    out <- readxl::read_xlsx(file.path(root, "2026", "kuvio.xlsx"))
+    expect_setequal(names(out), c("time", "geo", "values"))
+    expect_equal(nrow(out), nrow(a_long_df()))
+  })
+})
+
+test_that("a plain data frame can be passed instead of a plot", {
+  skip_if_not_installed("writexl")
+  skip_if_not_installed("readxl")
+  with_clean_data_defaults({
+    root <- tempfile("figs")
+    save_fig_data(a_long_df(), "kuvio", dir = root, year = 2026,
+                  names_from = "geo")
+    out <- readxl::read_xlsx(file.path(root, "2026", "kuvio.xlsx"))
+    expect_setequal(names(out), c("time", "FI", "SE"))
+  })
+})
+
+test_that("the plot (or data frame) comes back unchanged from save_fig_data()", {
+  skip_if_not_installed("ggplot2")
+  skip_if_not_installed("writexl")
+  with_clean_data_defaults({
+    p <- ggplot2::ggplot(a_long_df(), ggplot2::aes(time, values, colour = geo)) +
+      ggplot2::geom_line()
+    expect_identical(
+      save_fig_data(p, "kuvio", dir = tempfile("figs"), names_from = "geo"),
+      p
+    )
+
+    df <- a_long_df()
+    expect_identical(save_fig_data(df, "kuvio", dir = tempfile("figs")), df)
+  })
+})
+
+test_that("a data name that is a path is refused", {
+  skip_if_not_installed("writexl")
+  with_clean_data_defaults({
+    expect_error(save_fig_data(a_long_df(), "2026/kuvio"), "not a path")
+    expect_error(save_fig_data(a_long_df(), ""), "non empty")
+    expect_error(save_fig_data(a_long_df(), "kuvio", widht = 10), "Unknown setting")
   })
 })
