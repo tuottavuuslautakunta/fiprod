@@ -342,6 +342,7 @@ Työn tuottavuus, arvonlisä / työtunnit. Yrityssektori, indeksi 2007 = 100
 #| label: fig-tuottavuus-yrityssektori
 
 p <- dat_gva_ind_comb |>
+  select(-source) |> 
   filter(time >= "1995-01-01") |> 
   filter_recode(
     measure = c("GVAHRS"),
@@ -386,6 +387,7 @@ Työn tuottavuus toimialoittain, arvonlisä / työtunnit. Indeksi 2007 = 100
 #| label: fig-tuottavuus-toimialat
 
 p <- dat_gva_ind_comb|>
+  select(-source) |> 
   filter(time >= "2000-01-01") |> 
   filter_recode(
     measure = c("GVAHRS"),
