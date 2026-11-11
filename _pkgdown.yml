@@ -2,3 +2,24 @@ url: https://tuottavuuslautakunta.github.io/fiprod/
 template:
   bootstrap: 5
 
+# Artikkelit jaettu kahteen otsikkoon: ajantasaiset, jotka päivittyvät uudella
+# datalla, ja vuosiraportit, joiden kuviot on jäädytetty julkaisuvuotensa
+# dataan (load_dat(..., vintage = ...)) eikä niitä siis päivitetä. Uusi
+# vuosiraportti lisätään tähän samaan "Vuosiraportit"-otsikkoon.
+articles:
+- title: Ajantasaiset artikkelit
+  contents:
+  - main
+  - main_oecd
+  - public
+  - public_oecd
+  - competitiveness
+  - tyotunnit
+
+- title: Vuosiraportit
+  desc: >
+    Kuviot on jäädytetty julkaisuvuotensa dataan eivätkä päivity, vaikka
+    sivusto rakennettaisiin uudelleen uudemmalla datalla.
+  contents:
+  - board_2026
+  - board_2026_en
