@@ -47,6 +47,7 @@ if (update){
 
   source("data-raw/get_oecd_pdb.R")
   source("data-raw/get_oecd_lfs.R")
+  source("data-raw/get_oecd_ulc.R")
   source("data-raw/get_eurostat_na.R")
   source("data-raw/get_eurostat_gdp.R")
   source("data-raw/get_eurostat_ulc.R")

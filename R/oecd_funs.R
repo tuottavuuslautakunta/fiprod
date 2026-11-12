@@ -105,6 +105,79 @@ oecd_clean_data <- function(df = NULL, sdmx_obj = NULL, drop_vars = NULL, vars =
   out
 }
 
+#' Fetch a dataset from the OECD SDMX API
+#'
+#' Builds an OECD "Data Explorer" REST data request directly
+#' (\code{https://sdmx.oecd.org/public/rest/data/...}) and reads it with
+#' \code{rsdmx::readSDMX()}, used in place of the \code{OECD} package
+#' (\code{github::expersso/OECD}): that package is not on CRAN and has not
+#' kept up with this newer API. \code{rsdmx} is used only as a generic
+#' SDMX-ML reader here (\code{file = <url>, isURL = TRUE}), not through its
+#' own bundled \code{"OECD"} service provider profile: that profile still
+#' points at OECD's older \code{stats.oecd.org} warehouse, which does not
+#' know the dataflow ids (such as \code{"DSD_PDB@DF_PDB"}) this package's
+#' `data-raw/get_oecd_*.R` scripts already use.
+#'
+#' Returns a plain data frame, shaped like \code{\link{oecd_clean_data}}
+#' expects: one row per observation, a column per SDMX dimension,
+#' \code{TIME_PERIOD} and \code{ObsValue}.
+#'
+#' @param dataset The dataflow identifier, exactly as it already appears in
+#'   the `data-raw/get_oecd_*.R` scripts, e.g.
+#'   \code{"OECD.SDD.TPS,DSD_PDB@DF_PDB,"} (agency, dataflow id and version,
+#'   comma separated; an empty version means "latest"). Used as-is as the
+#'   request URL's dataflow path segment.
+#' @param filter The dimension filter, built by \code{\link{oecd_make_filter}}
+#'   (a dot separated string, with \code{+} joining several codes within one
+#'   dimension). Used as-is as the request URL's key path segment.
+#' @param start,end First/last period to fetch (a year, for annual data), sent
+#'   as the request's \code{startPeriod}/\code{endPeriod}. \code{NULL} (the
+#'   default) fetches every period, as the existing `get_oecd_*.R` scripts do.
+#' @param base_url The OECD SDMX REST API's base URL. Exposed for testing;
+#'   there should be no reason to change it otherwise.
+#'
+#' @return A data frame of the raw SDMX observations.
+#'
+#' @seealso \code{\link{oecd_clean_data}} to reshape the result,
+#'   \code{\link{oecd_make_filter}} to build \code{filter}.
+#'
+#' @examples
+#' \dontrun{
+#' dat <- oecd_get_dataset(
+#'   dataset = "OECD.SDD.TPS,DSD_PDB@DF_PDB,",
+#'   filter  = oecd_make_filter(list(c("FIN", "USA"), "A", "GVAHRS"))
+#' )
+#' }
+#'
+#' @export
+oecd_get_dataset <- function(dataset, filter, start = NULL, end = NULL,
+                             base_url = "https://sdmx.oecd.org/public/rest") {
+  url <- .oecd_dataset_url(dataset, filter, start, end, base_url)
+  sdmx <- rsdmx::readSDMX(file = url, isURL = TRUE)
+  as.data.frame(sdmx)
+}
+
+#' The OECD SDMX REST request URL for a dataset and filter
+#'
+#' Split out of [oecd_get_dataset()] so the URL it builds can be tested
+#' without a network call.
+#'
+#' @inheritParams oecd_get_dataset
+#' @return The request URL, a single string.
+#' @keywords internal
+.oecd_dataset_url <- function(dataset, filter, start = NULL, end = NULL,
+                              base_url = "https://sdmx.oecd.org/public/rest") {
+  url <- paste0(base_url, "/data/", dataset, "/", filter)
+
+  period <- c(startPeriod = start, endPeriod = end)
+  if (length(period)) {
+    url <- paste0(url, "?",
+                  paste(names(period), period, sep = "=", collapse = "&"))
+  }
+
+  url
+}
+
 #' Create an OECD Filter String
 #'
 #' This function takes a list of filtering arguments and constructs a filter string for an OECD API call.

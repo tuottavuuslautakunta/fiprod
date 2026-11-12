@@ -9,21 +9,20 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 Language: en
 Roxygen: list(markdown = TRUE)
-Suggests: 
+Suggests:
     knitr,
     quarto,
     readxl,
     rmarkdown,
-    rsdmx,
     countrycode,
     tidyverse,
     ggplot2,
     ggcustom,
-    testthat (>= 3.0.0),
+    testthat (>= 3.2.0),
     here (>= 1.0.1),
     writexl
 VignetteBuilder: knitr, quarto
-Imports: 
+Imports:
     dplyr,
     eurostat,
     forcats,
@@ -31,6 +30,7 @@ Imports:
     plotly,
     pxwebtools (>= 0.1.5),
     rlang,
+    rsdmx,
     stats,
     tibble,
     tidyr,

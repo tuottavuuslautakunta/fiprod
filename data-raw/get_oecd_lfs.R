@@ -2,7 +2,6 @@
 
 library(tidyverse)
 library(countrycode)
-library(OECD)  # OECD package should be => 0.3.0, currently form github pak::pak("expersso/OECD")
 
 
 
@@ -22,7 +21,7 @@ wap_key <- oecd_make_filter(
   )
 )
 
-dat_oecd_wap_0 <- get_dataset(
+dat_oecd_wap_0 <- oecd_get_dataset(
   dataset = wap_dataset,
   filter  = wap_key
 )

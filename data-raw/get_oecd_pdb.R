@@ -2,7 +2,6 @@
 
 library(tidyverse)
 library(countrycode)
-library(OECD)
 
 
 
@@ -13,7 +12,7 @@ pdb_dataset <- "OECD.SDD.TPS,DSD_PDB@DF_PDB,"
 pdb_main_key <- oecd_make_filter(
   list(geos_oecd, "A", c("GVAEMP", "GVAHRS", "GDP", "GVA", "GDPPOP", "HRS", "POP", "HRSPOP"), c("_T", "BTNXL"), NULL, NULL, "N", NULL, NULL))
 
-dat_oecd_pdb_main_0 <- get_dataset(
+dat_oecd_pdb_main_0 <- oecd_get_dataset(
   dataset = pdb_dataset, filter = pdb_main_key)
 
 dat_oecd_pdb_main_1 <-
@@ -77,7 +76,7 @@ save_dat(dat_oecd_pdb_main, overwrite = TRUE)
 pdb_ind_key <- oecd_make_filter(
   list(geos_oecd, "A", c("GVAEMP", "GVAHRS", "GVA", "EMP"), NULL, NULL, NULL, "N", NULL, "_Z"))
 
-dat_oecd_pdb_ind_0 <- get_dataset(
+dat_oecd_pdb_ind_0 <- oecd_get_dataset(
   dataset = pdb_dataset, filter = pdb_ind_key)
 
 dat_oecd_pdb_ind <-
@@ -103,7 +102,7 @@ rd_dataset <- "OECD.STI.STP,DSD_MSTI@DF_MSTI,"
 pdb_rd_key <- oecd_make_filter(
   list(geos_oecd, "A", c("G", "T_TT", "GDP", "TOT_EMP"), NULL, c("V", "_Z"), "_Z"))
 
-dat_oecd_pdb_rd_0 <- get_dataset(
+dat_oecd_pdb_rd_0 <- oecd_get_dataset(
   dataset = rd_dataset, filter = pdb_rd_key)
 
 dat_oecd_pdb_rd <-
