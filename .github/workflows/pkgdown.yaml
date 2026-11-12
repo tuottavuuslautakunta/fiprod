@@ -34,6 +34,17 @@ jobs:
           extra-packages: any::pkgdown, local::.
           needs: website
 
+      # TEMPORARY: pkgdown calls quarto::quarto_render(quiet = TRUE), which
+      # swallows quarto's own error message. Render one vignette directly
+      # with the CLI so the real error shows up in the log; remove this step
+      # once the "Build site" failure is understood.
+      - name: Debug - quarto render directly
+        continue-on-error: true
+        run: |
+          quarto --version
+          quarto check
+          quarto render vignettes/main.qmd --to html --output-dir /tmp/quarto-debug
+
       - name: Build site
         run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
         shell: Rscript {0}
