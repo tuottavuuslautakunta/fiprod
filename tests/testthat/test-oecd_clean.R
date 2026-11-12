@@ -4,20 +4,22 @@ test_that("oecd_clean_data works with OECD PDB annual feed", {
   skip_if_offline()
   skip_if_not_installed("rsdmx")
 
-  # Fetch OECD data (annual, countries FIN & USA, measure GVAHRS, etc.)
-  sdmx <- rsdmx::readSDMX(
-    providerId = "OECD",
-    resource   = "data",
-    flowRef    = "DSD_PDB@DF_PDB",
-    key        = list(c("FIN", "USA"), "A", "GVAHRS", c("_T", "C"),
-                      "XDC_H", "LR", "N", NULL, NULL),
-    start      = 2020,
-    end        = 2021
+  # Fetch OECD data (annual, countries FIN & USA, measure GVAHRS, etc.) via
+  # oecd_get_dataset(), not rsdmx's own bundled "OECD" provider profile: that
+  # profile points at the older stats.oecd.org warehouse, which does not know
+  # this newer dataflow id.
+  dat <- oecd_get_dataset(
+    dataset = "OECD.SDD.TPS,DSD_PDB@DF_PDB,",
+    filter  = oecd_make_filter(
+      list(c("FIN", "USA"), "A", "GVAHRS", c("_T", "C"),
+          "XDC_H", "LR", "N", NULL, NULL)),
+    start = 2020,
+    end   = 2021
   )
 
   # Clean with our function: keep and rename REF_AREA -> geo, ACTIVITY -> nace
   out <- oecd_clean_data(
-    sdmx_obj = sdmx,
+    df = dat,
     vars = c(geo = "REF_AREA", nace = "ACTIVITY"),
     freq = "A"
   )

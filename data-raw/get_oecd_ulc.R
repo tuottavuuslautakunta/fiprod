@@ -2,8 +2,8 @@
 
 library(tidyverse)
 library(countrycode)
-library(OECD)
-devtools::load_all()
+
+if (requireNamespace("devtools", quietly = TRUE)) devtools::load_all() else library(fiprod)
 
 geos_main <- c("FI", "SE", "NO", "DK", "BE", "NL", "AT", "PT", "DE", "IT", "FR", "ES", "US", "JP")
 geos_oecd <- c("EA20", countrycode(geos_main, "eurostat", "iso3c"))
@@ -21,7 +21,7 @@ pdb_ulc_key <- oecd_make_filter(
        NULL,         # Asset type
        "_Z"))        # Conversion type, exclude PPP
 
-dat_oecd_pdb_ulc_0 <- get_dataset(
+dat_oecd_pdb_ulc_0 <- oecd_get_dataset(
   dataset = pdb_dataset, filter = pdb_ulc_key)
 
 dat_oecd_pdb_ulc <-
@@ -63,7 +63,7 @@ ulcq_key <- oecd_make_filter(
        "S",          # Seasonal adjusted
        NULL))
 
-dat_oecd_ulcq_0 <- get_dataset(
+dat_oecd_ulcq_0 <- oecd_get_dataset(
   dataset = ulcq_dataset, filter = ulcq_key)
 
 
