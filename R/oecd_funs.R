@@ -5,6 +5,56 @@ utils::globalVariables(c(
   "obsValue"
 ))
 
+#' Parse a year or year-quarter period column into a `time` Date column
+#'
+#' A small stand-in for \code{pxwebtools::parse_dates()}, covering only the
+#' two period formats this package's own code needs: \code{"Y"} (a 4-digit
+#' year, e.g. \code{"2021"}) and \code{"y-q"} (year and quarter, e.g.
+#' \code{"2021-Q1"}, as OECD's quarterly data uses), each mapped to the first
+#' day of that year or quarter. As with \code{parse_dates()}, the parsed
+#' column always ends up named \code{time}, replacing whatever column
+#' \code{date_format}'s name pointed at.
+#'
+#' @param df A data frame.
+#' @param date_format A single named character vector, \code{c(<column> =
+#'   "Y")} or \code{c(<column> = "y-q")}: the column to parse and which
+#'   format it is in.
+#'
+#' @return \code{df}, with \code{date_format}'s column parsed into a
+#'   \code{Date} and renamed to \code{time}.
+#'
+#' @examples
+#' parse_period_date(data.frame(year = c("2020", "2021")), c(year = "Y"))
+#' parse_period_date(data.frame(obsTime = c("2021-Q1", "2021-Q2")),
+#'                   c(obsTime = "y-q"))
+#'
+#' @export
+parse_period_date <- function(df, date_format) {
+  col <- names(date_format)
+  fmt <- unname(date_format)
+  x <- as.character(df[[col]])
+
+  time <- switch(fmt,
+    "Y" = as.Date(paste0(x, "-01-01")),
+    "y-q" = {
+      parts <- regmatches(x, regexec("^(\\d{4})-Q([1-4])$", x))
+      if (any(lengths(parts) == 0)) {
+        stop("Not all values of '", col, "' match the \"y-q\" format ",
+             "(e.g. \"2021-Q1\"): ",
+             paste(x[lengths(parts) == 0], collapse = ", "))
+      }
+      year <- as.integer(vapply(parts, `[`, character(1), 2L))
+      quarter <- as.integer(vapply(parts, `[`, character(1), 3L))
+      as.Date(sprintf("%d-%02d-01", year, (quarter - 1L) * 3L + 1L))
+    },
+    stop("Unknown date_format: \"", fmt, "\". Only \"Y\" and \"y-q\" are supported.")
+  )
+
+  df[[col]] <- NULL
+  df$time <- time
+  df
+}
+
 #' Clean and reshape OECD SDMX data
 #'
 #' This function parses dates, converts character columns to factors,
@@ -59,13 +109,14 @@ oecd_clean_data <- function(df = NULL, sdmx_obj = NULL, drop_vars = NULL, vars =
   df2 <- df |>
     dplyr::select(-tidyselect::all_of(drop_vars)) |>
     dplyr::rename(tidyselect::any_of(c(obsTime = "TIME_PERIOD"))) |>
-    pxwebtools::parse_dates(date_format = c(obsTime = d_format)) |>
+    parse_period_date(date_format = c(obsTime = d_format)) |>
     dplyr::rename(tidyselect::any_of(c(obsValue = "ObsValue"))) |>
     dplyr::mutate(
       values = as.numeric(obsValue),
       .keep = "unused"
     ) |>
-    dplyr::mutate(dplyr::across(tidyselect::where(is.character), forcats::as_factor))
+    dplyr::mutate(dplyr::across(tidyselect::where(is.character),
+                                ~ factor(.x, levels = unique(.x))))
 
   # Validate that old names in vars exist in the data
   old_names <- unname(vars)

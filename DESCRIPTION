@@ -25,10 +25,8 @@ VignetteBuilder: knitr, quarto
 Imports:
     dplyr,
     eurostat,
-    forcats,
     nanoparquet,
     plotly,
-    pxwebtools (>= 0.1.5),
     rlang,
     rsdmx,
     stats,
@@ -36,8 +34,7 @@ Imports:
     tidyr,
     tidyselect,
     pttdatahaku
-Remotes: 
-    jhuovari/pxwebtools,
+Remotes:
     jhuovari/ggcustom,
     pttry/pttdatahaku
 Config/testthat/edition: 3

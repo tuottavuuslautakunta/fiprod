@@ -12,7 +12,7 @@ geos_ggdc <- c(c("BE", "DE", "EE", "IE", "EL", "ES", "FR", "IT", "CY", "LV",
 ggdc_file <- here::here("data-raw", "pld2023_dataset.xlsx")
 
 dat_ggdc_23<- readxl::read_xlsx(ggdc_file, sheet = "Data") |>
-  pxwebtools::parse_dates(date_format = c(year = "Y")) |>
+  parse_period_date(date_format = c(year = "Y")) |>
   statfitools::clean_names(to_lower = TRUE) |>
   mutate(geo = countrycode::countrycode(countrycode, "iso3c",
                                         destination = "eurostat",
