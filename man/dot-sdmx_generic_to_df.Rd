@@ -29,20 +29,19 @@ which namespace prefix a particular server happens to use.
 }
 \details{
 A query that returns many thousands of \verb{<Series>} (the OECD PDB
-main table, for instance, is some 8000 series for around 28000
-observations) makes this function's own performance matter: each
-\code{xml2}/\code{local-name()} XPath search here costs several
-milliseconds in a document that size, seemingly regardless of how small
-its own match is, so running one such search per \verb{<Series>} or
-\verb{<Obs>} individually turned an 8000-series response into an 8
-minute parse. Everything below instead runs a handful of XPath searches
+industry table, for instance, can be well over 100000 series, since it
+leaves the industry dimension unfiltered) makes this function's own
+performance matter: each \code{xml2}/\code{local-name()} XPath search
+here costs several milliseconds in a document that size, seemingly
+regardless of how small its own match is, so running one such search
+per \verb{<Series>} or \verb{<Obs>} individually turned such a response
+into many minutes of parsing (and, with a CI timeout in place, a failed
+build). Everything below instead runs a handful of XPath searches
 against the whole document (or, for \code{xml_find_first()}, against a
 whole nodeset at once, which is internally vectorised over every node in
-it) and reassembles the result with ordinary vector/data-frame
-operations, which brought the same parse down to well under a minute.
-The one exception is the \verb{<Obs>} count per \verb{<Series>} (needed
-to repeat each series's key/attributes to one row per observation),
-which still does one search per series; it is comparatively cheap and a
-robustly simple way to get an exact count.
+it), counts each \verb{<Series>}'s \verb{<Obs>} from its already-known
+child count rather than a further search, and reassembles the result
+with ordinary vector/data-frame operations - no XPath search is run
+per-Series or per-Obs at all.
 }
 \keyword{internal}
