@@ -17,7 +17,7 @@
 library(tidyverse)
 library(eurostat)
 
-devtools::load_all()
+if (requireNamespace("devtools", quietly = TRUE)) devtools::load_all() else library(fiprod)
 
 options(timeout = 600)
 

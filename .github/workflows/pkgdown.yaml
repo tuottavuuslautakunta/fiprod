@@ -10,6 +10,10 @@ permissions: read-all
 jobs:
   pkgdown:
     runs-on: ubuntu-latest
+    # A job-level ceiling well below GitHub's own 6h default, so a hung
+    # network call (a flaky DNS lookup against a source API, say) fails loud
+    # within the hour instead of occupying a runner silently all day.
+    timeout-minutes: 60
     # Only restrict concurrency for non-PR jobs
     concurrency:
       group: pkgdown-${{ github.event_name != 'pull_request' || github.run_id }}
@@ -33,6 +37,23 @@ jobs:
         with:
           extra-packages: any::pkgdown, local::.
           needs: website
+
+      # The report's own figures (board_2026*.qmd) read a frozen vintage
+      # copy of this same data (inst/extdata/v<year>_*.parquet, committed to
+      # git) and are unaffected by this step; every other article reads the
+      # live files this step (re)writes, which are themselves gitignored and
+      # so never carried over between runs. FIPROD_UPDATE_DATA=true makes
+      # data-raw/data_main.R re-fetch from Eurostat/OECD first, instead of
+      # just recombining whatever happens to already be on disk (nothing, on
+      # a fresh checkout).
+      - name: Fetch live source data and rebuild combined tables
+        env:
+          FIPROD_UPDATE_DATA: "true"
+        run: |
+          if (requireNamespace("devtools", quietly = TRUE)) devtools::load_all() else library(fiprod)
+          source("data-raw/read_ggdc_data.R")
+          source("data-raw/data_main.R")
+        shell: Rscript {0}
 
       - name: Build site
         run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
