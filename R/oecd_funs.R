@@ -239,37 +239,96 @@ oecd_get_dataset <- function(dataset, filter, start = NULL, end = NULL,
 #'   period string, e.g. \code{"2021"} or \code{"2021-Q1"}) and
 #'   \code{obsValue} (numeric).
 #'
+#' @details
+#' A query that returns many thousands of \verb{<Series>} (the OECD PDB
+#' main table, for instance, is some 8000 series for around 28000
+#' observations) makes this function's own performance matter: each
+#' \code{xml2}/\code{local-name()} XPath search here costs several
+#' milliseconds in a document that size, seemingly regardless of how small
+#' its own match is, so running one such search per \verb{<Series>} or
+#' \verb{<Obs>} individually turned an 8000-series response into an 8
+#' minute parse. Everything below instead runs a handful of XPath searches
+#' against the whole document (or, for \code{xml_find_first()}, against a
+#' whole nodeset at once, which is internally vectorised over every node in
+#' it) and reassembles the result with ordinary vector/data-frame
+#' operations, which brought the same parse down to well under a minute.
+#' The one exception is the \verb{<Obs>} count per \verb{<Series>} (needed
+#' to repeat each series's key/attributes to one row per observation),
+#' which still does one search per series; it is comparatively cheap and a
+#' robustly simple way to get an exact count.
+#'
 #' @keywords internal
 .sdmx_generic_to_df <- function(doc) {
-  xml_id_values <- function(node, path) {
-    nodes <- xml2::xml_find_all(node, path)
-    as.list(stats::setNames(xml2::xml_attr(nodes, "value"), xml2::xml_attr(nodes, "id")))
-  }
-
   series_nodes <- xml2::xml_find_all(doc, ".//*[local-name()='Series']")
   if (!length(series_nodes)) {
     stop("No <Series> found in the SDMX-ML response; the query may have ",
          "no matching data, or the response is not SDMX-ML Generic data.")
   }
+  n_series <- length(series_nodes)
 
-  series_rows <- lapply(series_nodes, function(series) {
-    key   <- xml_id_values(series, "./*[local-name()='SeriesKey']/*[local-name()='Value']")
-    attrs <- xml_id_values(series, "./*[local-name()='Attributes']/*[local-name()='Value']")
+  # SeriesKey always enumerates the same dimensions, in the same order, for
+  # every Series in one response (they share the same DSD), so this can be
+  # reshaped straight into a one-row-per-series matrix.
+  key_values <- xml2::xml_find_all(doc, ".//*[local-name()='Series']/*[local-name()='SeriesKey']/*[local-name()='Value']")
+  k <- length(key_values) / n_series
+  if (k != round(k) || k == 0) {
+    stop("Every <Series> was expected to have the same number of <SeriesKey> dimensions.")
+  }
+  key_id  <- xml2::xml_attr(key_values, "id")
+  key_val <- xml2::xml_attr(key_values, "value")
+  key_id_mat <- matrix(key_id, ncol = k, byrow = TRUE)
+  if (!all(apply(key_id_mat, 2, function(x) length(unique(x)) == 1L))) {
+    stop("<SeriesKey> dimensions were not in the same order in every <Series>.")
+  }
+  key_df <- as.data.frame(matrix(key_val, ncol = k, byrow = TRUE), stringsAsFactors = FALSE)
+  names(key_df) <- key_id_mat[1, ]
 
-    obs_nodes <- xml2::xml_find_all(series, "./*[local-name()='Obs']")
-    obs_rows <- lapply(obs_nodes, function(obs) {
-      obs_time  <- xml2::xml_attr(xml2::xml_find_first(obs, "./*[local-name()='ObsDimension']"), "value")
-      obs_value <- as.numeric(xml2::xml_attr(xml2::xml_find_first(obs, "./*[local-name()='ObsValue']"), "value"))
-      obs_attrs <- xml_id_values(obs, "./*[local-name()='Attributes']/*[local-name()='Value']")
+  # Series/Obs level Attributes are optional and can vary from one
+  # Series/Obs to the next (unlike SeriesKey above), so they can't be
+  # reshaped into a fixed-width matrix; widen each into one row per
+  # Series/Obs instead. A Series or Obs has at most one <Attributes>
+  # wrapper, so xml_find_first() (vectorised: one call for the whole
+  # nodeset) gives NA for those with none, with zero or more <Value>
+  # children each.
+  widen_attrs <- function(parent_nodes) {
+    wrap    <- xml2::xml_find_first(parent_nodes, "./*[local-name()='Attributes']")
+    present <- !is.na(wrap)
+    values  <- xml2::xml_find_all(wrap[present], "./*[local-name()='Value']")
+    owner   <- rep(which(present), times = xml2::xml_length(wrap[present]))
+    long <- data.frame(.row = owner,
+                        id = xml2::xml_attr(values, "id"),
+                        value = xml2::xml_attr(values, "value"),
+                        stringsAsFactors = FALSE)
 
-      as.data.frame(c(key, attrs, list(obsTime = obs_time, obsValue = obs_value), obs_attrs),
-                    stringsAsFactors = FALSE)
-    })
+    if (!nrow(long)) {
+      return(as.data.frame(matrix(nrow = length(parent_nodes), ncol = 0)))
+    }
+    wide <- tidyr::pivot_wider(long, id_cols = ".row", names_from = "id", values_from = "value")
+    out  <- dplyr::left_join(data.frame(.row = seq_along(parent_nodes)), wide, by = ".row")
+    out[, setdiff(names(out), ".row"), drop = FALSE]
+  }
 
-    dplyr::bind_rows(obs_rows)
-  })
+  sattr_df <- widen_attrs(series_nodes)
 
-  dplyr::bind_rows(series_rows)
+  # The one search done per Series rather than for the whole document: how
+  # many <Obs> it has, to repeat its key/attributes to one row per
+  # observation below.
+  obs_count <- vapply(series_nodes, function(s) {
+    length(xml2::xml_find_all(s, "./*[local-name()='Obs']"))
+  }, integer(1))
+  obs_series_idx <- rep(seq_len(n_series), times = obs_count)
+
+  obs_nodes <- xml2::xml_find_all(doc, ".//*[local-name()='Series']/*[local-name()='Obs']")
+  obs_time  <- xml2::xml_attr(xml2::xml_find_first(obs_nodes, "./*[local-name()='ObsDimension']"), "value")
+  obs_value <- as.numeric(xml2::xml_attr(xml2::xml_find_first(obs_nodes, "./*[local-name()='ObsValue']"), "value"))
+  oattr_df  <- widen_attrs(obs_nodes)
+
+  dplyr::bind_cols(
+    key_df[obs_series_idx, , drop = FALSE],
+    sattr_df[obs_series_idx, , drop = FALSE],
+    data.frame(obsTime = obs_time, obsValue = obs_value, stringsAsFactors = FALSE),
+    oattr_df
+  )
 }
 
 #' The OECD SDMX REST request URL for a dataset and filter
