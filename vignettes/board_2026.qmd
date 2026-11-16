@@ -1200,7 +1200,7 @@ p <- luku5("kuvio21") |>
            "Hajonnan muutos (oikea asteikko)" = "Hajonnan muutos")) |> 
 
   mutate(
-    type = if_else(are_na(type), "Alkuperäinen", "HP-tasoitettu"),
+    type = if_else(is.na(type), "Alkuperäinen", "HP-tasoitettu"),
     type = as_factor(type)) |>
   mutate(values = if_else(series %in% k21_oikea, values / k21_suhde, values)) |>
   ggplot(aes(time, values, colour = series, linewidth = type)) +
