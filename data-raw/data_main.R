@@ -56,13 +56,26 @@ update <- isTRUE(as.logical(Sys.getenv("FIPROD_UPDATE_DATA", "FALSE")))
 
 if (update){
 
-  source("data-raw/get_oecd_pdb.R")
-  source("data-raw/get_oecd_lfs.R")
-  source("data-raw/get_oecd_ulc.R")
-  source("data-raw/get_eurostat_na.R")
-  source("data-raw/get_eurostat_gdp.R")
-  source("data-raw/get_eurostat_ulc.R")
-  source("data-raw/get_exch.R")
+  # Besides oecd_get_dataset()'s own curl timeout, eurostat::get_eurostat()
+  # starts every call with an internal connectivity check against
+  # ec.europa.eu that has no timeout of its own, so a stalled connection
+  # there would hang indefinitely too. withTimeout() bounds each script to a
+  # fixed wall-clock budget and names which one failed, instead of leaving a
+  # silent hang indistinguishable from a script still legitimately working.
+  update_scripts <- c(
+    "data-raw/get_oecd_pdb.R",
+    "data-raw/get_oecd_lfs.R",
+    "data-raw/get_oecd_ulc.R",
+    "data-raw/get_eurostat_na.R",
+    "data-raw/get_eurostat_gdp.R",
+    "data-raw/get_eurostat_ulc.R",
+    "data-raw/get_exch.R"
+  )
+  for (update_script in update_scripts) {
+    message("Running ", update_script, " ...")
+    R.utils::withTimeout(source(update_script), timeout = 480, onTimeout = "error")
+  }
+  rm(update_script)
 }
 
 dat_oecd_pdb_main <- load_dat("dat_oecd_pdb_main")

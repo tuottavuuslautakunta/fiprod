@@ -48,14 +48,21 @@ test_that("neither start nor end adds a query string", {
 
 test_that("oecd_get_dataset() fetches the built URL and parses the response", {
   skip_if_not_installed("xml2")
+  skip_if_not_installed("curl")
 
   fake_doc <- xml2::read_xml(a_sdmx_generic_xml())
-  called_with <- NULL
+  called_url <- NULL
+  called_handle <- NULL
   testthat::local_mocked_bindings(
-    read_xml = function(x) {
-      called_with <<- x
-      fake_doc
+    curl = function(url, open = "", handle = curl::new_handle()) {
+      called_url <<- url
+      called_handle <<- handle
+      url
     },
+    .package = "curl"
+  )
+  testthat::local_mocked_bindings(
+    read_xml = function(x) fake_doc,
     .package = "xml2"
   )
 
@@ -66,9 +73,10 @@ test_that("oecd_get_dataset() fetches the built URL and parses the response", {
   )
 
   expect_identical(
-    called_with,
+    called_url,
     "https://example.test/rest/data/OECD.SDD.TPS,DSD_PDB@DF_PDB,/FIN.A.GVAHRS"
   )
+  expect_s3_class(called_handle, "curl_handle")
   expect_s3_class(out, "data.frame")
   expect_equal(nrow(out), 3)
 })
