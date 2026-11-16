@@ -56,8 +56,14 @@ jobs:
           source("data-raw/data_main.R")
         shell: Rscript {0}
 
+      # quiet = FALSE (build_site_github_pages()'s ... forwards to
+      # build_site(), which has this parameter) makes a quarto article
+      # failure here show the real quarto CLI error directly in this step's
+      # log, instead of just "Rerun with quiet = FALSE to see the full
+      # error message" - exactly the debug step we've repeatedly had to
+      # add and remove by hand, but permanent.
       - name: Build site
-        run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
+        run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE, quiet = FALSE)
         shell: Rscript {0}
 
       - name: Deploy to GitHub pages 🚀
