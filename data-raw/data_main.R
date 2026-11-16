@@ -4,7 +4,7 @@ library(tidyverse)
 library(pttdatahaku)
 library(countrycode)
 
-devtools::load_all()
+if (requireNamespace("devtools", quietly = TRUE)) devtools::load_all() else library(fiprod)
 
 ## Classifications
 
@@ -35,13 +35,24 @@ geos_comp      <- c(geos_comp_es, geos_comp_oecd)
 comp_base_year <- 2010
 
 
-usethis::use_data(geo_ea, geos_oecd, geos_eurostat,
-                  geos_comp, geos_comp_es, geos_comp_oecd, comp_base_year,
-                  overwrite = TRUE)
+# These classifications rarely change; re-running this interactively after
+# editing one of them above writes it back to data/. Skipped when the script
+# runs non-interactively (e.g. in CI, to refresh the live data below), since
+# the committed data/*.rda already matches what's written here.
+if (interactive()) {
+  usethis::use_data(geo_ea, geos_oecd, geos_eurostat,
+                    geos_comp, geos_comp_es, geos_comp_oecd, comp_base_year,
+                    overwrite = TRUE)
+}
 
 ## update
+#
+# Set to TRUE to re-fetch the live source data from Eurostat/OECD before
+# rebuilding the combined tables below, instead of just recombining
+# whatever is already on disk. Also settable with the FIPROD_UPDATE_DATA
+# environment variable (e.g. for an automated refresh).
 
-update <- FALSE
+update <- isTRUE(as.logical(Sys.getenv("FIPROD_UPDATE_DATA", "FALSE")))
 
 if (update){
 
