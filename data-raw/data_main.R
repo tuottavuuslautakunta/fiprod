@@ -766,7 +766,7 @@ save_dat(dat_ulc_comp, overwrite = TRUE)
 # the two parts, so the two should agree; a gap means the definitions differ.
 ulce_check <-
   dat_oecd_pdb_ulc |>
-  filter(geo %in% geos_comp_oecd, measure == "ULCE", unit_measure == "IX") |>
+  filter(geo %in% geos_comp_oecd, measure == "ULCE", unit_measure == "XDC") |>
   transmute(time = as.Date(paste0(time, "-01-01")),
             geo = as.character(geo), ulce = values) |>
   inner_join(
