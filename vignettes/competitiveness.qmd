@@ -245,7 +245,7 @@ bind_rows(
     filter(vars == "nulc_aper", geo %in% geos) |>
     transmute(time, geo = as.character(geo), values, lahde = "Eurostat (nulc_aper)"),
   dat_oecd_pdb_ulc |>
-    filter(measure == "ULCE", unit_measure == "IX") |>
+    filter(measure == "ULCE", unit_measure == "XDC") |>
     transmute(time = as.Date(paste0(time, "-01-01")),
               geo = as.character(geo), values, lahde = "OECD (ULCE)") |>
     filter(geo %in% geos)
