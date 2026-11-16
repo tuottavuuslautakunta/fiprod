@@ -139,12 +139,13 @@ public_period_lab <- paste0(min(public_period), "–", max(public_period))
 #
 # Sarjat tulevat valmiina laskettuina Exceleistä (data-raw/rap_2026/Luku3.xlsx,
 # Luku4_2.xlsx, Luku5.xlsx ja Luku6.xlsx), jotka luetaan skripteillä
-# data-raw/read_luku3.R, read_luku4_2.R, read_luku5.R ja read_luku6.R. Vintagea ei tarvita, koska Excelit ovat jo tämän
-# raportin omia tiedostoja eivätkä päivity rajapinnasta.
-dat_luku3_2026 <- load_dat("dat_luku3_2026")
-dat_luku4_2_2026 <- load_dat("dat_luku4_2_2026")
-dat_luku5_2026 <- load_dat("dat_luku5_2026")
-dat_luku6_2026 <- load_dat("dat_luku6_2026")
+# data-raw/read_luku3.R, read_luku4_2.R, read_luku5.R ja read_luku6.R. Myös
+# nämä Excelit voivat vielä muuttua julkaisun jälkeen, joten jäädytetty
+# vintage-kopio tarvitaan siinä missä muillakin tämän raportin taulukoilla.
+dat_luku3_2026 <- load_dat("dat_luku3_2026", vintage = vintage_year)
+dat_luku4_2_2026 <- load_dat("dat_luku4_2_2026", vintage = vintage_year)
+dat_luku5_2026 <- load_dat("dat_luku5_2026", vintage = vintage_year)
+dat_luku6_2026 <- load_dat("dat_luku6_2026", vintage = vintage_year)
 
 # Poimivat yhden kuvion sarjat. droplevels() pudottaa muiden kuvioiden sarjat
 # pois, jotta selite ja värit tulevat vain tämän kuvion sarjoista.

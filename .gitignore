@@ -8,11 +8,6 @@ inst/doc
 **/.quarto/
 inst/extdata/*
 !inst/extdata/v[0-9]*_*.parquet
-# Report chapter figure data (data-raw/read_luku*.R): sourced from this
-# report's own committed Excel files (data-raw/rap_2026/*.xlsx), not a live
-# API, so there is nothing for these to drift from and no vintage copy is
-# needed - unlike the v<year>_*.parquet files above.
-!inst/extdata/dat_luku*.parquet
 VM
 /.quarto/
 vignettes/figures
