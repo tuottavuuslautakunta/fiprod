@@ -1,13 +1,13 @@
 test_that("oecd_clean_data works with OECD PDB annual feed", {
-  # Skip on CRAN/CI or offline, and if rsdmx isn't installed
+  # Skip on CRAN/CI or offline, and if xml2 isn't installed
   skip_on_cran()
   skip_if_offline()
-  skip_if_not_installed("rsdmx")
+  skip_if_not_installed("xml2")
 
   # Fetch OECD data (annual, countries FIN & USA, measure GVAHRS, etc.) via
-  # oecd_get_dataset(), not rsdmx's own bundled "OECD" provider profile: that
-  # profile points at the older stats.oecd.org warehouse, which does not know
-  # this newer dataflow id.
+  # oecd_get_dataset(), which builds the request itself: rsdmx's own bundled
+  # "OECD" provider profile points at the older stats.oecd.org warehouse,
+  # which does not know this newer dataflow id.
   dat <- oecd_get_dataset(
     dataset = "OECD.SDD.TPS,DSD_PDB@DF_PDB,",
     filter  = oecd_make_filter(
