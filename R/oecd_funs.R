@@ -241,21 +241,20 @@ oecd_get_dataset <- function(dataset, filter, start = NULL, end = NULL,
 #'
 #' @details
 #' A query that returns many thousands of \verb{<Series>} (the OECD PDB
-#' main table, for instance, is some 8000 series for around 28000
-#' observations) makes this function's own performance matter: each
-#' \code{xml2}/\code{local-name()} XPath search here costs several
-#' milliseconds in a document that size, seemingly regardless of how small
-#' its own match is, so running one such search per \verb{<Series>} or
-#' \verb{<Obs>} individually turned an 8000-series response into an 8
-#' minute parse. Everything below instead runs a handful of XPath searches
+#' industry table, for instance, can be well over 100000 series, since it
+#' leaves the industry dimension unfiltered) makes this function's own
+#' performance matter: each \code{xml2}/\code{local-name()} XPath search
+#' here costs several milliseconds in a document that size, seemingly
+#' regardless of how small its own match is, so running one such search
+#' per \verb{<Series>} or \verb{<Obs>} individually turned such a response
+#' into many minutes of parsing (and, with a CI timeout in place, a failed
+#' build). Everything below instead runs a handful of XPath searches
 #' against the whole document (or, for \code{xml_find_first()}, against a
 #' whole nodeset at once, which is internally vectorised over every node in
-#' it) and reassembles the result with ordinary vector/data-frame
-#' operations, which brought the same parse down to well under a minute.
-#' The one exception is the \verb{<Obs>} count per \verb{<Series>} (needed
-#' to repeat each series's key/attributes to one row per observation),
-#' which still does one search per series; it is comparatively cheap and a
-#' robustly simple way to get an exact count.
+#' it), counts each \verb{<Series>}'s \verb{<Obs>} from its already-known
+#' child count rather than a further search, and reassembles the result
+#' with ordinary vector/data-frame operations - no XPath search is run
+#' per-Series or per-Obs at all.
 #'
 #' @keywords internal
 .sdmx_generic_to_df <- function(doc) {
@@ -290,8 +289,7 @@ oecd_get_dataset <- function(dataset, filter, start = NULL, end = NULL,
   # wrapper, so xml_find_first() (vectorised: one call for the whole
   # nodeset) gives NA for those with none, with zero or more <Value>
   # children each.
-  widen_attrs <- function(parent_nodes) {
-    wrap    <- xml2::xml_find_first(parent_nodes, "./*[local-name()='Attributes']")
+  widen_attrs <- function(parent_nodes, wrap) {
     present <- !is.na(wrap)
     values  <- xml2::xml_find_all(wrap[present], "./*[local-name()='Value']")
     owner   <- rep(which(present), times = xml2::xml_length(wrap[present]))
@@ -308,20 +306,23 @@ oecd_get_dataset <- function(dataset, filter, start = NULL, end = NULL,
     out[, setdiff(names(out), ".row"), drop = FALSE]
   }
 
-  sattr_df <- widen_attrs(series_nodes)
+  sattr_wrap <- xml2::xml_find_first(series_nodes, "./*[local-name()='Attributes']")
+  sattr_df   <- widen_attrs(series_nodes, sattr_wrap)
 
-  # The one search done per Series rather than for the whole document: how
-  # many <Obs> it has, to repeat its key/attributes to one row per
-  # observation below.
-  obs_count <- vapply(series_nodes, function(s) {
-    length(xml2::xml_find_all(s, "./*[local-name()='Obs']"))
-  }, integer(1))
+  # <Series> has exactly one <SeriesKey> child, an optional <Attributes>
+  # child (just looked up above) and otherwise only <Obs> children, so its
+  # Obs count falls out of xml_length() (a cheap direct child count, not an
+  # XPath search) without any search at all - the OECD PDB industry table,
+  # for instance, can have well over 100 000 <Series>, at which point even
+  # one XPath search per Series adds up.
+  obs_count <- xml2::xml_length(series_nodes) - 1L - as.integer(!is.na(sattr_wrap))
   obs_series_idx <- rep(seq_len(n_series), times = obs_count)
 
   obs_nodes <- xml2::xml_find_all(doc, ".//*[local-name()='Series']/*[local-name()='Obs']")
   obs_time  <- xml2::xml_attr(xml2::xml_find_first(obs_nodes, "./*[local-name()='ObsDimension']"), "value")
   obs_value <- as.numeric(xml2::xml_attr(xml2::xml_find_first(obs_nodes, "./*[local-name()='ObsValue']"), "value"))
-  oattr_df  <- widen_attrs(obs_nodes)
+  oattr_wrap <- xml2::xml_find_first(obs_nodes, "./*[local-name()='Attributes']")
+  oattr_df   <- widen_attrs(obs_nodes, oattr_wrap)
 
   dplyr::bind_cols(
     key_df[obs_series_idx, , drop = FALSE],
