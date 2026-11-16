@@ -28,11 +28,11 @@ Imports:
     nanoparquet,
     plotly,
     rlang,
-    rsdmx,
     stats,
     tibble,
     tidyr,
     tidyselect,
+    xml2,
     pttdatahaku
 Remotes:
     jhuovari/ggcustom,

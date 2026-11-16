@@ -35,20 +35,22 @@ A data frame of the raw SDMX observations.
 }
 \description{
 Builds an OECD "Data Explorer" REST data request directly
-(\code{https://sdmx.oecd.org/public/rest/data/...}) and reads it with
-\code{rsdmx::readSDMX()}, used in place of the \code{OECD} package
-(\code{github::expersso/OECD}): that package is not on CRAN and has not
-kept up with this newer API. \code{rsdmx} is used only as a generic
-SDMX-ML reader here (\code{file = <url>, isURL = TRUE}), not through its
-own bundled \code{"OECD"} service provider profile: that profile still
-points at OECD's older \code{stats.oecd.org} warehouse, which does not
-know the dataflow ids (such as \code{"DSD_PDB@DF_PDB"}) this package's
-\verb{data-raw/get_oecd_*.R} scripts already use.
+(\code{https://sdmx.oecd.org/public/rest/data/...}), reads the response
+with \code{xml2} and flattens its SDMX-ML Generic data into a plain data
+frame. Used in place of the \code{OECD} package
+(\code{github::expersso/OECD}, not on CRAN and not kept up with this
+newer API) and, as of this version, without \code{rsdmx} either: its own
+bundled \code{"OECD"} service provider profile still points at OECD's
+older \code{stats.oecd.org} warehouse, which does not know the dataflow
+ids (such as \code{"DSD_PDB@DF_PDB"}) this package's
+\verb{data-raw/get_oecd_*.R} scripts already use, and using it only as a
+generic SDMX-ML reader (as an earlier version of this function did) was
+one more dependency for what \code{xml2} alone already does.
 }
 \details{
 Returns a plain data frame, shaped like \code{\link{oecd_clean_data}}
-expects: one row per observation, a column per SDMX dimension,
-\code{TIME_PERIOD} and \code{ObsValue}.
+expects: one row per observation, a column per SDMX dimension and series
+or observation level attribute, \code{obsTime} and \code{obsValue}.
 }
 \examples{
 \dontrun{

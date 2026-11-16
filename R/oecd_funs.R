@@ -159,19 +159,21 @@ oecd_clean_data <- function(df = NULL, sdmx_obj = NULL, drop_vars = NULL, vars =
 #' Fetch a dataset from the OECD SDMX API
 #'
 #' Builds an OECD "Data Explorer" REST data request directly
-#' (\code{https://sdmx.oecd.org/public/rest/data/...}) and reads it with
-#' \code{rsdmx::readSDMX()}, used in place of the \code{OECD} package
-#' (\code{github::expersso/OECD}): that package is not on CRAN and has not
-#' kept up with this newer API. \code{rsdmx} is used only as a generic
-#' SDMX-ML reader here (\code{file = <url>, isURL = TRUE}), not through its
-#' own bundled \code{"OECD"} service provider profile: that profile still
-#' points at OECD's older \code{stats.oecd.org} warehouse, which does not
-#' know the dataflow ids (such as \code{"DSD_PDB@DF_PDB"}) this package's
-#' `data-raw/get_oecd_*.R` scripts already use.
+#' (\code{https://sdmx.oecd.org/public/rest/data/...}), reads the response
+#' with \code{xml2} and flattens its SDMX-ML Generic data into a plain data
+#' frame. Used in place of the \code{OECD} package
+#' (\code{github::expersso/OECD}, not on CRAN and not kept up with this
+#' newer API) and, as of this version, without \code{rsdmx} either: its own
+#' bundled \code{"OECD"} service provider profile still points at OECD's
+#' older \code{stats.oecd.org} warehouse, which does not know the dataflow
+#' ids (such as \code{"DSD_PDB@DF_PDB"}) this package's
+#' `data-raw/get_oecd_*.R` scripts already use, and using it only as a
+#' generic SDMX-ML reader (as an earlier version of this function did) was
+#' one more dependency for what \code{xml2} alone already does.
 #'
 #' Returns a plain data frame, shaped like \code{\link{oecd_clean_data}}
-#' expects: one row per observation, a column per SDMX dimension,
-#' \code{TIME_PERIOD} and \code{ObsValue}.
+#' expects: one row per observation, a column per SDMX dimension and series
+#' or observation level attribute, \code{obsTime} and \code{obsValue}.
 #'
 #' @param dataset The dataflow identifier, exactly as it already appears in
 #'   the `data-raw/get_oecd_*.R` scripts, e.g.
@@ -204,8 +206,61 @@ oecd_clean_data <- function(df = NULL, sdmx_obj = NULL, drop_vars = NULL, vars =
 oecd_get_dataset <- function(dataset, filter, start = NULL, end = NULL,
                              base_url = "https://sdmx.oecd.org/public/rest") {
   url <- .oecd_dataset_url(dataset, filter, start, end, base_url)
-  sdmx <- rsdmx::readSDMX(file = url, isURL = TRUE)
-  as.data.frame(sdmx)
+  doc <- xml2::read_xml(url)
+  .sdmx_generic_to_df(doc)
+}
+
+#' Flatten an SDMX-ML Generic data document into a data frame
+#'
+#' A minimal SDMX-ML 2.1 "Generic" data reader, covering just the structure
+#' OECD's SDMX REST API returns for a plain \code{Accept: application/xml}
+#' request (no \code{dsd} or structure-specific negotiation): one
+#' \verb{<Series>} per dimension combination, each with a \verb{<SeriesKey>}
+#' and optional series level \verb{<Attributes>}, holding one or more
+#' \verb{<Obs>}, each with a single \verb{<ObsDimension>} (the time period),
+#' an \verb{<ObsValue>} and optional observation level \verb{<Attributes>}.
+#' Elements are matched by local name only, so the result does not depend on
+#' which namespace prefix a particular server happens to use.
+#'
+#' @param doc An \code{xml2} document or node, as read by
+#'   \code{\link[xml2]{read_xml}}.
+#'
+#' @return A data frame with one row per observation: a column per SDMX
+#'   dimension and series/observation attribute, \code{obsTime} (the raw
+#'   period string, e.g. \code{"2021"} or \code{"2021-Q1"}) and
+#'   \code{obsValue} (numeric).
+#'
+#' @keywords internal
+.sdmx_generic_to_df <- function(doc) {
+  xml_id_values <- function(node, path) {
+    nodes <- xml2::xml_find_all(node, path)
+    as.list(stats::setNames(xml2::xml_attr(nodes, "value"), xml2::xml_attr(nodes, "id")))
+  }
+
+  series_nodes <- xml2::xml_find_all(doc, ".//*[local-name()='Series']")
+  if (!length(series_nodes)) {
+    stop("No <Series> found in the SDMX-ML response; the query may have ",
+         "no matching data, or the response is not SDMX-ML Generic data.")
+  }
+
+  series_rows <- lapply(series_nodes, function(series) {
+    key   <- xml_id_values(series, "./*[local-name()='SeriesKey']/*[local-name()='Value']")
+    attrs <- xml_id_values(series, "./*[local-name()='Attributes']/*[local-name()='Value']")
+
+    obs_nodes <- xml2::xml_find_all(series, "./*[local-name()='Obs']")
+    obs_rows <- lapply(obs_nodes, function(obs) {
+      obs_time  <- xml2::xml_attr(xml2::xml_find_first(obs, "./*[local-name()='ObsDimension']"), "value")
+      obs_value <- as.numeric(xml2::xml_attr(xml2::xml_find_first(obs, "./*[local-name()='ObsValue']"), "value"))
+      obs_attrs <- xml_id_values(obs, "./*[local-name()='Attributes']/*[local-name()='Value']")
+
+      as.data.frame(c(key, attrs, list(obsTime = obs_time, obsValue = obs_value), obs_attrs),
+                    stringsAsFactors = FALSE)
+    })
+
+    dplyr::bind_rows(obs_rows)
+  })
+
+  dplyr::bind_rows(series_rows)
 }
 
 #' The OECD SDMX REST request URL for a dataset and filter
