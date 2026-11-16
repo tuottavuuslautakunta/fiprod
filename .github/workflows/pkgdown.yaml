@@ -56,22 +56,6 @@ jobs:
           source("data-raw/data_main.R")
         shell: Rscript {0}
 
-      # Temporary: pkgdown's own quarto_render() call uses quiet = TRUE,
-      # which hides the real error behind "Rerun with quiet = FALSE to see
-      # the full error message." Render every article directly first, with
-      # full output, so a failure here shows what pkgdown's own build_site()
-      # call below would otherwise mask. Remove once the real error is
-      # found and fixed.
-      - name: "Debug - render each article directly"
-        continue-on-error: true
-        run: |
-          for f in vignettes/*.qmd; do
-            case "$f" in vignettes/_*) continue ;; esac
-            echo "::group::$f"
-            quarto render "$f" --to html || echo "FAILED: $f"
-            echo "::endgroup::"
-          done
-
       - name: Build site
         run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
         shell: Rscript {0}
