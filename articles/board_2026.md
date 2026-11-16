@@ -1,0 +1,1907 @@
+# Tuottavuuslautakunnan raportti 2026
+
+Päivitetty: 2026-11-16
+
+Raportin kuviot. Otsikot, alaotsikot ja lähdetiedot ovat kuvion
+yläpuolella tekstinä, eivät kuviossa, ja jokainen kuvio tallentuu myös
+png- ja pdf-tiedostoksi julkaisuvuoden mukaiseen kansioon. Kansioon
+`figures/otsikoilla/<vuosi>/` tallentuu lisäksi jokaisesta kuviosta
+itsenäinen, 16 x 12 cm png, jossa otsikko, alaotsikko ja lähde ovat
+kuvion päällä; se on tarkoitettu käytettäväksi ilman raportin omaa
+leipätekstiä. Kansioon `figures/data/<vuosi>/` tallentuu jokaisen kuvion
+oma data leveässä muodossa xlsx-tiedostoksi, yksi sarake sarjaa kohden.
+
+Englanninkielinen versio samoista kuvioista on [Finnish Productivity
+Board report
+2026](https://tuottavuuslautakunta.github.io/fiprod/articles/board_2026_en.qmd).
+Sen kuviot tallentuvat kansioon `figures/en/<vuosi>/`, joten
+kieliversiot eivät kirjoita toistensa tiedostojen päälle.
+
+### Aineisto lyhyesti
+
+Luvut tulevat paketin yhdistetystä aineistosta: EU- ja ETA-maat
+Eurostatin kansantalouden tilinpidosta, muut OECD:n
+tuottavuustietokannasta. Kiinteähintaiset sarjat ovat ketjutettuja
+eivätkä siksi yhteenlaskettavia, joten toimialat summataan edellisen
+vuoden hintaisten sarjojen kautta ja ketjutetaan uudelleen — näin on
+rakennettu myös yrityssektori (NACE B–N ilman kiinteistöalaa).
+OECD-mailla työtunnit ja työlliset lasketaan takaisin arvonlisäyksestä
+ja työn tuottavuudesta, koska tietokannassa ei ole tunteja eikä
+työllisiä erikseen. Kustannuskilpailukyvyn indikaattorit ovat suhteessa
+17 verrokkimaahan ECFIN:n kauppapainoilla.
+
+Tarkemmin selitettynä: aineiston rakentaminen ja mittarit [Talouskasvu
+ja
+tuottavuus](https://tuottavuuslautakunta.github.io/fiprod/articles/main.qmd),
+työtuntien ero lähteiden välillä [Työtunnit: Eurostat ja
+OECD](https://tuottavuuslautakunta.github.io/fiprod/articles/tyotunnit.qmd)
+ja yksikkötyökustannusten määritelmät
+[Kustannuskilpailukyky](https://tuottavuuslautakunta.github.io/fiprod/articles/competitiveness.qmd).
+Aineiston koodi on `data-raw/data_main.R`.
+
+Näytä koodi
+
+``` r
+
+# library(fiprod)
+
+if (interactive()) devtools::load_all(".") else library(fiprod) 
+
+library(tidyverse)
+library(ggcustom)
+library(pttdatahaku)
+
+
+set_gg(theme_fpb(base_size = 11))
+options(OutDec = ",")
+
+y_log_breaks <- scales::breaks_pretty(n = 8)
+
+# Vintagetiedot eivät päivity ellei datatiedostoja ensi poisteta.
+vintage_year <- 2026
+
+# Julkaisuvuosi. Kuviot tallentuvat kansioon figures/<vuosi>/, koko 13,5 x 13,5
+# cm. Muut tallennuksen oletukset (koko, tarkkuus, tiedostomuoto, kansio) ovat
+# save_fig():n oletuksia ja vaihdettavissa tässä samalla kutsulla.
+report_year <- 2026
+
+set_fig_defaults(dir = "figures", year = report_year)
+
+# Jokaisesta kuviosta tallentuu save_fig():n rinnalla myös itsenäinen png,
+# jossa otsikko, alaotsikko ja lähde ovat kuvion päällä (save_fig_captioned()).
+# Se on tarkoitettu käytettäväksi ilman raportin omaa leipätekstiä, joten koko
+# on suurempi (16 x 12 cm) ja se tallentuu omaan alikansioonsa
+# figures/otsikoilla/<vuosi>/, ettei se kirjoita save_fig():n tiedostojen
+# päälle.
+set_fig_captioned_defaults(dir = file.path("figures", "otsikoilla"), year = report_year)
+
+# Jokaisesta kuviosta tallentuu lisäksi sen oma data leveässä muodossa
+# xlsx-tiedostoksi kansioon figures/data/<vuosi>/ (save_fig_data()).
+set_fig_data_defaults(dir = file.path("figures", "data"), year = report_year)
+
+dat_gdp_main <- load_dat("dat_gdp_main", vintage = vintage_year)
+
+dat_gva_ind_comb <- load_dat("dat_gva_ind_comb", vintage = vintage_year)
+
+geos <- rev(c(
+  "Suomi"         = "FI",
+  "Euroalue"      = "EA20",
+  "Ruotsi"        = "SE",
+  "Tanska"        = "DK",
+  "Saksa"         = "DE",
+  "Ranska"        = "FR",
+  "USA"           = "US",
+  "muut"          = "Other"
+))
+
+geos_width <- set_names(if_else(geos %in% c("FI"), 2, 1.3), names(geos))
+geos_colour <- set_names(c("grey80", rev(ggcustom_pal(length(geos) -1, "fpb"))), names(geos)) # muut luokalle harmaa
+
+
+# geos_name <- set_names(names(geos), geos)
+
+# Kustannuskilpailukyky
+
+dat_ulc_comp     <- load_dat("dat_ulc_comp", vintage = vintage_year)
+dat_oecd_pdb_ulc <- load_dat("dat_oecd_pdb_ulc", vintage = vintage_year)
+
+start_year <- 2000
+
+# Indeksin vertailujakso: keskiarvo 2000 - viimeisin = 100, kuten raportissa
+mean_range <- start_year:lubridate::year(max(dat_ulc_comp$time))
+
+
+
+# Poimii yhden tai useamman indikaattorin leveään muotoon ja indeksoi uudelleen
+pick <- function(vars_keep, col = "rel", geo_keep = "FI") {
+  dat_ulc_comp |>
+    filter(
+      geo %in% geo_keep, 
+      vars %in% vars_keep,
+      lubridate::year(time) >= start_year) |>
+    select(time, geo, vars, extended, values = all_of(col)) |>
+    mutate(values = rebase_index(values, time, mean_range), .by = c(geo, vars)) |>
+    mutate(vars = fct_recode(factor(vars, levels = vars_keep), !!!vars_keep))
+}
+
+sub_ind <- paste0("Indeksi, keskiarvo ", min(mean_range), "–", max(mean_range), " = 100")
+
+# Julkisen sektorin tuottavuusvertailun jakso: kasvuvauhtien keskiarvo
+# lasketaan näiltä vuosilta
+public_period <- 1998:2023
+public_period_lab <- paste0(min(public_period), "–", max(public_period))
+
+# Lukujen 3, 4.2, 5 ja 6 kuviot
+#
+# Sarjat tulevat valmiina laskettuina Exceleistä (data-raw/rap_2026/Luku3.xlsx,
+# Luku4_2.xlsx, Luku5.xlsx ja Luku6.xlsx), jotka luetaan skripteillä
+# data-raw/read_luku3.R, read_luku4_2.R, read_luku5.R ja read_luku6.R. Vintagea ei tarvita, koska Excelit ovat jo tämän
+# raportin omia tiedostoja eivätkä päivity rajapinnasta.
+dat_luku3_2026 <- load_dat("dat_luku3_2026")
+dat_luku4_2_2026 <- load_dat("dat_luku4_2_2026")
+dat_luku5_2026 <- load_dat("dat_luku5_2026")
+dat_luku6_2026 <- load_dat("dat_luku6_2026")
+
+# Poimivat yhden kuvion sarjat. droplevels() pudottaa muiden kuvioiden sarjat
+# pois, jotta selite ja värit tulevat vain tämän kuvion sarjoista.
+luku3 <- function(fig) {
+  droplevels(filter(dat_luku3_2026, figure == fig))
+}
+
+luku4_2 <- function(fig) {
+  droplevels(filter(dat_luku4_2_2026, figure == fig))
+}
+
+luku5 <- function(fig) {
+  droplevels(filter(dat_luku5_2026, figure == fig))
+}
+
+luku6 <- function(fig) {
+  droplevels(filter(dat_luku6_2026, figure == fig))
+}
+
+# Kuvion 17 sarjat on indeksoitu koko jakson keskiarvoon
+k17_range <- range(lubridate::year(luku5("kuvio17")$time))
+sub_ind_k17 <- paste0("Indeksi, keskiarvo ", k17_range[1], "–", k17_range[2], " = 100")
+```
+
+## Tuottavuuskehitys
+
+### BKT per capita tasoero
+
+BKT suhteessa väestöön. Vuoden 2020 \$ hinnoin ostovoimakorjattuna
+(log-asteikko). Lähde: Eurostat, OECD, Tuottavuuslautakunta.
+
+Näytä koodi
+
+``` r
+
+p <- dat_gdp_main |>
+  filter(time >= "1995-01-01") |> 
+  filter_recode(
+    geo = geos,
+    measure = c("GDPPOP"),
+    activity = c("Koko talous" = "_T"),
+    price_base = c("LR"),        # 
+    conversion_type = c("PPP")
+  ) |> 
+  # mutate(geo2 = suppressWarnings(fct_relevel(geo, geos, after = Inf))) |>
+  # mutate(geo = fct_other(geo, keep = geos, other_level = "Other")) |> 
+  # filter_recode(geo = geos) |> 
+  select(-unit_measure) |> 
+  ggplot(aes(time, values, colour = geo, linewidth = geo)) +
+  geom_line() +
+  scale_colour_manual(values = geos_colour) +
+  scale_linewidth_manual(values = geos_width) +
+  scale_y_log10(breaks = y_log_breaks) +
+  guides(colour = guide_legend(reverse = TRUE), linewidth = guide_legend(reverse = TRUE)) +
+  the_title_blank("xyl")
+
+save_fig(p, "1_bkt-per-capita")
+save_fig_captioned(p, "1_bkt-per-capita",
+  title = "BKT per capita tasoero",
+  subtitle = "BKT suhteessa väestöön. Vuoden 2020 $ hinnoin ostovoimakorjattuna (log-asteikko).",
+  caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta.")
+save_fig_data(p, "1_bkt-per-capita", names_from = "geo")
+```
+
+![](board_2026_files/figure-html/fig-bkt-per-capita-1.png)
+
+Figure 1
+
+![](board_2026_files/figure-html/fig-bkt-per-capita-2.png)
+
+Figure 2
+
+![](board_2026_files/figure-html/fig-bkt-per-capita-3.png)
+
+Figure 3
+
+Eurostat ei julkaise ostovoimakorjattuja sarjoja, joten muunnos tehdään
+OECD:n omilla muuntokertoimilla. Niitä ei ole kaikille vuosille, jolloin
+lähin käytettävissä oleva kerroin kuljetetaan eteenpäin.
+
+### BKT per capita hajotelma
+
+Työn tuottavuus ja työtunnit. BKT työtuntia kohden vuoden 2020 \$
+hinnoin ostovoimakorjattuna ja työtunnit henkeä kohden (log-asteikko).
+Lähde: Eurostat, OECD, Tuottavuuslautakunta.
+
+Näytä koodi
+
+``` r
+
+pdat <- dat_gdp_main |>
+  filter(time >= "1995-01-01") |> 
+  filter_recode(
+    geo = geos,
+    measure = c("GDP", "HRS", "HRSPOP", "EMP", "POP", "WAP"),
+    activity = c("Koko talous" = "_T"),
+    unit_measure = c("USD_PPP", "H", "H_PS", "PS"),
+    price_base = c("LR", "_Z"),        
+    conversion_type = c("PPP", "_Z")
+  ) |> 
+  select(time, geo, measure, values) |> 
+  pivot_wider(names_from = "measure", values_from = "values") |> 
+  mutate(
+    time = time,
+    geo = geo,
+    "BKT per työtunnit, $" = 1000 * GDP / HRS,
+    "Työtunnit per väestö, h" = HRS / POP,
+    .keep = "none") |> 
+  pivot_longer(!c("time", "geo"), names_to = "measure", values_to = "values")
+
+# skaalat oikeaksi vaikutuksen suhteen
+rng <- pdat |>
+  summarise(lo = min(values, na.rm = TRUE), hi = max(values, na.rm = TRUE), .by = measure) |>
+  mutate(dec = max(log10(hi / lo)),          # suurin jänne dekadeina
+         mid = sqrt(lo * hi),                # geometrinen keskikohta
+         lo  = mid / 10^(dec / 2),
+         hi  = mid * 10^(dec / 2)) |>
+  select(measure, lo, hi) |>
+  pivot_longer(c(lo, hi), values_to = "values") |>
+  mutate(time = min(pdat$time))
+
+p <- ggplot(pdat, aes(time, values, colour = geo, linewidth = geo)) +
+  geom_blank(data = rng, aes(time, values), inherit.aes = FALSE) +
+  facet_wrap(~measure, scales = "free") +
+  scale_y_log10(breaks = y_log_breaks) +
+  geom_line() +
+  scale_colour_manual(values = geos_colour) +
+  scale_linewidth_manual(values = geos_width) +
+  guides(colour = guide_legend(reverse = TRUE), linewidth = guide_legend(reverse = TRUE)) +
+  the_title_blank("xyl")
+
+save_fig(p, "2_bkt-per-capita-hajotelma")
+save_fig_captioned(p, "2_bkt-per-capita-hajotelma",
+  title = "BKT per capita hajotelma",
+  subtitle = paste("Työn tuottavuus ja työtunnit. BKT työtuntia kohden vuoden 2020 $ hinnoin",
+                   "ostovoimakorjattuna ja työtunnit henkeä kohden (log-asteikko)."),
+  caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta.")
+save_fig_data(p, "2_bkt-per-capita-hajotelma", names_from = c("measure", "geo"))
+```
+
+![](board_2026_files/figure-html/fig-bkt-per-capita-hajotelma-1.png)
+
+Figure 4
+
+![](board_2026_files/figure-html/fig-bkt-per-capita-hajotelma-2.png)
+
+Figure 5
+
+![](board_2026_files/figure-html/fig-bkt-per-capita-hajotelma-3.png)
+
+Figure 6
+
+Työtunnit ovat OECD-mailla laskettu takaisin arvonlisäyksestä ja työn
+tuottavuudesta. OECD korvaa kymmenen maan tilinpidon työtunnit omalla
+estimaatillaan, mikä siirtää tuntien ja siten tuottavuuden tasoja mutta
+ei juuri kasvuvauhteja; ks. [Työtunnit: Eurostat ja
+OECD](https://tuottavuuslautakunta.github.io/fiprod/articles/tyotunnit.qmd).
+
+### BKT per capita hajotelma työlliset
+
+Työn tuottavuus ja työlliset. BKT työllistä kohden vuoden 2020 \$
+hinnoin ostovoimakorjattuna ja työlliset henkeä kohden (log-asteikko).
+Lähde: Eurostat, OECD, Tuottavuuslautakunta.
+
+Näytä koodi
+
+``` r
+
+pdat <- dat_gdp_main |>
+  filter(time >= "1995-01-01") |> 
+  filter_recode(
+    geo = geos,
+    measure = c("GDP", "HRS", "HRSPOP", "EMP", "POP", "WAP"),
+    activity = c("Koko talous" = "_T"),
+    unit_measure = c("USD_PPP", "H", "H_PS", "PS"),
+    price_base = c("LR", "_Z"),        
+    conversion_type = c("PPP", "_Z")
+  ) |> 
+  select(time, geo, measure, values) |> 
+  pivot_wider(names_from = "measure", values_from = "values") |> 
+  mutate(
+    time = time,
+    geo = geo,
+    "BKT per työlliset, $" = 1000 * GDP / EMP,
+    "Työlliset per väestö" = EMP / POP,
+    .keep = "none") |> 
+  pivot_longer(!c("time", "geo"), names_to = "measure", values_to = "values")
+
+# skaalat oikeaksi vaikutuksen suhteen
+rng <- pdat |>
+  summarise(lo = min(values, na.rm = TRUE), hi = max(values, na.rm = TRUE), .by = measure) |>
+  mutate(dec = max(log10(hi / lo)),          # suurin jänne dekadeina
+         mid = sqrt(lo * hi),                # geometrinen keskikohta
+         lo  = mid / 10^(dec / 2),
+         hi  = mid * 10^(dec / 2)) |>
+  select(measure, lo, hi) |>
+  pivot_longer(c(lo, hi), values_to = "values") |>
+  mutate(time = min(pdat$time))
+
+p <- ggplot(pdat, aes(time, values, colour = geo, linewidth = geo)) +
+  geom_blank(data = rng, aes(time, values), inherit.aes = FALSE) +
+  facet_wrap(~measure, scales = "free") +
+  scale_y_log10(breaks = y_log_breaks) +
+  geom_line() +
+  scale_colour_manual(values = geos_colour) +
+  scale_linewidth_manual(values = geos_width) +
+  guides(colour = guide_legend(reverse = TRUE), linewidth = guide_legend(reverse = TRUE)) +
+  the_title_blank("xyl")
+
+save_fig(p, "bkt-per-capita-hajotelma_tyoll")
+```
+
+### Työn tuottavuuden kasvu yrityssektorilla
+
+Työn tuottavuus, arvonlisä / työtunnit. Yrityssektori, indeksi 2007 =
+100 (log-asteikko). Lähde: Eurostat, OECD, Tuottavuuslautakunta.
+
+Näytä koodi
+
+``` r
+
+p <- dat_gva_ind_comb |>
+  select(-source) |> 
+  filter(time >= "1995-01-01") |> 
+  filter_recode(
+    measure = c("GVAHRS"),
+    activity = c("Yrityssektori" = "BTNXL"),
+    vars = c("fp_2020_lc")
+  ) |> 
+  mutate(values = rebase(values, time, baseyear = 2007), .by = where(is.factor)) |> 
+  # filter(geo != "DK") |> 
+  filter_recode(
+    geo = geos
+  ) |> 
+
+  ggplot(aes(time, values, colour = geo, linewidth = geo)) +
+  # facet_wrap(~ activity, nrow = 1) +
+  geom_line() +
+  scale_colour_manual(values = geos_colour) +
+  scale_linewidth_manual(values = geos_width) +
+  scale_y_log10(breaks = y_log_breaks) +
+  guides(colour = guide_legend(reverse = TRUE), linewidth = guide_legend(reverse = TRUE)) +
+  the_title_blank("xyl")
+
+save_fig(p, "3_tuottavuus-yrityssektori")
+save_fig_captioned(p, "3_tuottavuus-yrityssektori",
+  title = "Työn tuottavuus yrityssektorilla",
+  subtitle = "arvonlisä / työtunnit. Yrityssektori, indeksi 2007 = 100, log-asteikko",
+  caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta.")
+save_fig_data(p, "3_tuottavuus-yrityssektori", names_from = "geo")
+```
+
+![](board_2026_files/figure-html/fig-tuottavuus-yrityssektori-1.png)
+
+Figure 7
+
+![](board_2026_files/figure-html/fig-tuottavuus-yrityssektori-2.png)
+
+Figure 8
+
+![](board_2026_files/figure-html/fig-tuottavuus-yrityssektori-3.png)
+
+Figure 9
+
+Yrityssektori on NACE B–N ilman kiinteistöalaa (L). Eurostat-mailla se
+on summattu A\*10-toimialoista edellisen vuoden hintaisten sarjojen
+kautta ja ketjutettu uudelleen; OECD-mailla se tulee tietokannasta
+valmiina (`BTNXL`). Sarjat ovat omassa valuutassa, joten kuviosta
+luetaan kasvu, ei tasoeroa.
+
+### Työn tuottavuuden kasvu teollisuudessa ja palveluissa
+
+Työn tuottavuus toimialoittain, arvonlisä / työtunnit. Indeksi 2007 =
+100 (log-asteikko). Lähde: Eurostat, OECD, Tuottavuuslautakunta.
+
+Näytä koodi
+
+``` r
+
+p <- dat_gva_ind_comb|>
+  select(-source) |> 
+  filter(time >= "2000-01-01") |> 
+  filter_recode(
+    measure = c("GVAHRS"),
+    activity = c("Teollisuus" = "BTE", "Rakentaminen" = "F","Yksityiset palvelut" = "GTNXL"),
+    vars = c("fp_2020_lc")
+  ) |> 
+  mutate(values = rebase(values, time, baseyear = 2007), .by = where(is.factor)) |> 
+  filter(geo != "DK") |>
+  filter_recode(
+    geo = geos
+  ) |> 
+
+  ggplot(aes(time, values, colour = geo, linewidth = geo)) +
+  scale_y_log10(limits = c(60, 150), breaks = y_log_breaks) +
+  facet_wrap(~ activity) +
+  geom_line() +
+  scale_colour_manual(values = geos_colour) +
+  scale_linewidth_manual(values = geos_width) +
+  guides(colour = guide_legend(reverse = TRUE), linewidth = guide_legend(reverse = TRUE)) +
+  the_title_blank("xyl")
+
+save_fig(p, "4_tuottavuus-toimialat")
+save_fig_captioned(p, "4_tuottavuus-toimialat",
+  title = "Työn tuottavuuden kasvu teollisuudessa ja palveluissa",
+  subtitle = "Työn tuottavuus toimialoittain, arvonlisä / työtunnit. Indeksi 2007 = 100 (log-asteikko).",
+  caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta.")
+save_fig_data(p, "4_tuottavuus-toimialat", names_from = c("activity", "geo"))
+```
+
+![](board_2026_files/figure-html/fig-tuottavuus-toimialat-1.png)
+
+Figure 10
+
+![](board_2026_files/figure-html/fig-tuottavuus-toimialat-2.png)
+
+Figure 11
+
+![](board_2026_files/figure-html/fig-tuottavuus-toimialat-3.png)
+
+Figure 12
+
+OECD:n toimialatiedoissa teollisuus (B–E) sisältää vain
+tehdasteollisuuden, mikä koskee OECD:stä tulevia maita; ks. [Talouskasvu
+ja
+tuottavuus](https://tuottavuuslautakunta.github.io/fiprod/articles/main.qmd).
+
+### Tuottavuuden taso palveluissa
+
+Työn tuottavuus palveluissa, arvonlisä / työtunnit 2017 \$
+ostovoimakorjattuna (log-asteikko). Lähde: Eurostat, OECD,
+Tuottavuuslautakunta
+
+Näytä koodi
+
+``` r
+
+p <- dat_gva_ind_comb|> 
+  filter(time >= "1995-01-01") |> 
+  filter_recode(
+    measure = c("GVAHRS"),
+    activity = c("Yksityiset palvelut" = "GTNXL"),
+    vars = c("fp_2020_ppp17")
+  ) |> 
+  # mutate(values = rebase(values, time, baseyear = 2007), .by = where(is.factor)) |> 
+  filter_recode(
+    geo = geos
+  ) |> 
+  ggplot(aes(time, values, colour = geo, linewidth = geo)) +
+  scale_y_log10(limits = c(50, 150), breaks = y_log_breaks) +
+  geom_line() +
+  scale_colour_manual(values = geos_colour) +
+  scale_linewidth_manual(values = geos_width) +
+  scale_y_log10(breaks = y_log_breaks) +
+  guides(colour = guide_legend(reverse = TRUE), linewidth = guide_legend(reverse = TRUE)) +
+  the_title_blank("xyl") 
+
+save_fig(p, "s1_tuottavuustaso-palvelut")
+save_fig_captioned(p, "s1_tuottavuustaso-palvelut",
+  title = "Tuottavuuden taso palveluissa",
+  subtitle = "Arvonlisä / työtunnit, 2017 $ ostovoimakorjattuna, log-asteikko",
+  caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta.")
+save_fig_data(p, "s1_tuottavuustaso-palvelut", names_from = "geo")
+```
+
+![](board_2026_files/figure-html/fig-tuottavuustaso-palvelut-1.png)
+
+Figure 13
+
+![](board_2026_files/figure-html/fig-tuottavuustaso-palvelut-2.png)
+
+Figure 14
+
+![](board_2026_files/figure-html/fig-tuottavuustaso-palvelut-3.png)
+
+Figure 15
+
+## Kustannuskilpailukyvyn kehitys
+
+### Yksikkökustannusindikaattorit
+
+Suomen suhteellinen yksikkötyökustannus eri määritelmillä. Indeksi,
+keskiarvo 2000–2025 = 100. Lähde: Eurostat, Tuottavuuslautakunta.
+
+Näytä koodi
+
+``` r
+
+p <- pick(c("Nimellinen, omassa valuutassa" = "nulc_aper",
+            "Nimellinen, samassa valuutassa" = "nulc_aper_eur",
+            "Nimellinen, vaihtosuhdekorjattu" = "nulc_aper_eur_atot",
+            "Reaalinen" = "rulc_aper")) |>
+  ggplot(aes(time, values, colour = vars)) +
+  geom_hline(yintercept = 100, linewidth = 0.3) +
+  geom_line() +
+  the_title_blank("xl") +
+  the_legend_bot() +
+  guides(colour = guide_legend(nrow = 2)) +
+  labs(y = NULL)
+
+save_fig(p, "5_ulc-maaritelmat")
+save_fig_captioned(p, "5_ulc-maaritelmat",
+  title = "Yksikkökustannusindikaattorit",
+  subtitle = sub_ind,
+  caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta.")
+save_fig_data(p, "5_ulc-maaritelmat", names_from = "vars")
+```
+
+![](board_2026_files/figure-html/fig-ulc-maaritelmat-1.png)
+
+Figure 16
+
+![](board_2026_files/figure-html/fig-ulc-maaritelmat-2.png)
+
+Figure 17
+
+![](board_2026_files/figure-html/fig-ulc-maaritelmat-3.png)
+
+Figure 18
+
+Suhdeluku lasketaan 17 verrokkimaata vastaan, paitsi
+vaihtosuhdekorjattu, joka on vain 15 Eurostat-maan joukossa: OECD:n
+tuottavuustietokannassa ei ole vientiä eikä tuontia. USA:n ja Japanin
+viimeiset vuodet on jatkettu OECD:n neljännesvuosisarjojen
+kasvuvauhdilla, joten viimeinen vuosi nojaa osin jatkettuun tietoon
+(`extended`-sarake).
+
+### ULC hajotelma
+
+Suhteellisen yksikkötyökustannuksen osatekijät. Indeksi, keskiarvo
+2000–2025 = 100. Lähde: Eurostat, Tuottavuuslautakunta.
+
+Näytä koodi
+
+``` r
+
+p <- pick(c("Tuottavuus" = "lp_ind",
+            "Palkansaajakorvaukset" = "d1_per_ind",
+            "Valuuttakurssi" = "exch_eur_ind")) |>
+  mutate(values = if_else(vars == "Valuuttakurssi", 100^2 / values, values)) |>
+  ggplot(aes(time, values, colour = vars)) +
+  geom_hline(yintercept = 100, linewidth = 0.3) +
+  geom_line() +
+  the_title_blank("xl") +
+  the_legend_bot() +
+  labs(y = NULL)
+
+save_fig(p, "6_ulc-hajotelma")
+save_fig_captioned(p, "6_ulc-hajotelma",
+  title = "ULC hajotelma",
+  subtitle = paste0("Suhteellisen yksikkötyökustannuksen osatekijät. ", sub_ind, "."),
+  caption = "Lähde: Eurostat, Tuottavuuslautakunta.")
+save_fig_data(p, "6_ulc-hajotelma", names_from = "vars")
+```
+
+![](board_2026_files/figure-html/fig-ulc-hajotelma-1.png)
+
+Figure 19
+
+![](board_2026_files/figure-html/fig-ulc-hajotelma-2.png)
+
+Figure 20
+
+![](board_2026_files/figure-html/fig-ulc-hajotelma-3.png)
+
+Figure 21
+
+Valuuttakurssi-indeksi on kansallista valuuttaa euroa kohden, eli sen
+nousu tarkoittaa valuutan heikkenemistä. Kuviossa se on käännetty ympäri
+(100² / indeksi), jolloin nousu on valuutan vahvistuminen ja siten
+yksikkötyökustannuksen nousu yhteisessä valuutassa.
+Palkansaajakorvausten nousu nostaa yksikkötyökustannusta, tuottavuuden
+nousu laskee sitä.
+
+## Luvun 3 kuviot
+
+Luvun 3 sarjat tulevat luvun 5 sarjojen tapaan valmiina laskettuina
+Excel-tiedostosta `data-raw/rap_2026/Luku3.xlsx`, jossa on yksi
+välilehti kuviota kohden ja jokaisella välilehdellä myös mallikuvio.
+Välilehdet luetaan yhdeksi taulukoksi skriptillä
+`data-raw/read_luku3.R`, joka pitää ajaa ennen tämän dokumentin
+kääntämistä.
+
+Mallikuvioista on otettu se, mitkä sarjat kuviossa ovat, sarjojen ja
+paneelien nimet sekä kuvion 2 akselien otsikot. Otsikot ja huomautukset
+ovat välilehtien omia, tavutus purettuna.
+
+### Työn tuottavuus yksityisellä palvelusektorilla
+
+Työn tuottavuus Suomen yksityisellä palvelusektorilla vuosina 2000–2024.
+1 000 euroa kokoaikatyöllistä kohden vuoden 2015 hinnoin. Lähde:
+Tilastokeskus; omat laskelmat.
+
+Näytä koodi
+
+``` r
+
+p <- luku3("kuvio1") |>
+  ggplot(aes(time, values)) +
+  geom_line() +
+  expand_limits(y = 50) +
+  scale_y_continuous(n.breaks = 6) +
+  the_title_blank("xyl")
+
+save_fig(p, "7_palvelut-tuottavuus")
+save_fig_captioned(p, "7_palvelut-tuottavuus",
+  title = "Työn tuottavuus yksityisellä palvelusektorilla",
+  subtitle = paste("Työn tuottavuus Suomen yksityisellä palvelusektorilla vuosina 2000–2024.",
+                   "1 000 euroa kokoaikatyöllistä kohden vuoden 2015 hinnoin."),
+  caption = "Lähde: Tilastokeskus; omat laskelmat.")
+save_fig_data(p, "7_palvelut-tuottavuus")
+```
+
+![](board_2026_files/figure-html/fig-palvelut-tuottavuus-1.png)
+
+Figure 22
+
+![](board_2026_files/figure-html/fig-palvelut-tuottavuus-2.png)
+
+Figure 23
+
+![](board_2026_files/figure-html/fig-palvelut-tuottavuus-3.png)
+
+Figure 24
+
+Yksityinen palvelusektori sisältää tässä TOL 2008:n toimialat 45–63,
+68–74 ja 77–82, ja työn tuottavuus on mitattu vuoden 2015
+kiinteähintaisena arvonlisäyksenä henkilötyövuotta kohden (välilehden
+huomautus). Asteikko alkaa nollasta kuten mallikuviossa, koska kyse on
+tasosta.
+
+### Tuottavuus ja pääomaintensiteetti palvelutoimialoilla
+
+Työn tuottavuus ja pääomakanta suhteessa tehtyihin työtunteihin viidellä
+palvelutoimialalla EU-maissa ja Norjassa. Lähde: Kaitila, Ville,
+“Service Industries, Capital Intensity, and Labour Productivity”, ETLA
+Working Papers No 127.
+
+Näytä koodi
+
+``` r
+
+# Toimialojen tasot poikkeavat toisistaan paljon, joten jokaisella paneelilla on
+# omat asteikkonsa kuten mallissa, jossa ne ovat viisi erillistä kuviota.
+p <- luku3("kuvio2") |>
+  pivot_wider(names_from = series, values_from = values) |>
+  ggplot(aes(caplab_total_eur, labprod_eur)) +
+  facet_wrap(~ panel, scales = "free", labeller = label_wrap_gen(width = 25), ncol = 2) +
+  expand_limits(y = 0, x = 0) +
+  geom_point(size = 1.5, colour = "grey30") +
+  geom_smooth(method = lm, se = FALSE, linewidth = 0.7, colour = "grey70") +
+  geom_text(
+    data = ~ filter(.x, key %in% geos),
+    aes(label = key), size = 3, hjust = 1.5) +
+  geom_point(
+    data = ~ filter(.x, key %in% geos),
+    aes(label = key), size = 1.5, colour = fpb_pal(1)[1]) +
+  geom_text(
+    data = ~ filter(.x, key == "FI"),
+    aes(label = key), size = 3, hjust = 1.5, colour = fpb_pal(2)[2]) +
+  geom_point(
+    data = ~ filter(.x, , key == "FI"),
+    aes(label = key), size = 1.5, colour = fpb_pal(2)[2]) +
+  labs(x = "Pääomakanta suhteessa tehtyihin työtunteihin", y = "Tuottavuus")
+
+save_fig(p, "8_palvelut-paaomaintensiteetti", height = 18)
+save_fig_captioned(p, "8_palvelut-paaomaintensiteetti",
+  title = "Tuottavuus ja pääomaintensiteetti palvelutoimialoilla",
+  subtitle = paste("Työn tuottavuus ja pääomakanta suhteessa tehtyihin työtunteihin viidellä",
+                   "palvelutoimialalla EU-maissa ja Norjassa."),
+  caption = paste("Lähde: Kaitila, Ville, \"Service Industries, Capital Intensity, and Labour",
+                  "Productivity\", ETLA Working Papers No 127."))
+# data on jo leveässä muodossa (pivot_wider() ennen ggplot()-kutsua)
+save_fig_data(p, "8_palvelut-paaomaintensiteetti")
+```
+
+![](board_2026_files/figure-html/fig-palvelut-paaomaintensiteetti-1.png)
+
+Figure 25
+
+![](board_2026_files/figure-html/fig-palvelut-paaomaintensiteetti-2.png)
+
+Figure 26
+
+![](board_2026_files/figure-html/fig-palvelut-paaomaintensiteetti-3.png)
+
+Figure 27
+
+Kuvio on mallikuvioita korkeampi (12 cm), koska paneeleita on viisi.
+Luxemburg puuttuu kaikilta toimialoilta ja Irlanti informaatio- ja
+viestintäalalta, joten ne eivät ole kuviossa.
+
+### Työvoimakustannusten suhde rajatuottoon
+
+Työvoimakustannusten suhde työn arvioituun rajatuottoon toimialoittain
+vuosina 2000–2022. Suhdeluku. Lähde: omat laskelmat.
+
+Näytä koodi
+
+``` r
+
+p <- luku3("kuvio3") |>
+  ggplot(aes(values, key)) +
+  geom_col() +
+  expand_limits(x = 1) +
+  theme(axis.text.y = element_text(size = 9)) +
+  the_title_blank("xyl")
+
+save_fig(p, "9_tyovoimakustannukset-rajatuotto")
+save_fig_captioned(p, "9_tyovoimakustannukset-rajatuotto",
+  title = "Työvoimakustannusten suhde rajatuottoon",
+  subtitle = paste("Työvoimakustannusten suhde työn arvioituun rajatuottoon toimialoittain",
+                   "vuosina 2000–2022. Suhdeluku."),
+  caption = "Lähde: omat laskelmat.")
+save_fig_data(p, "9_tyovoimakustannukset-rajatuotto")
+```
+
+![](board_2026_files/figure-html/fig-tyovoimakustannukset-rajatuotto-1.png)
+
+Figure 28
+
+![](board_2026_files/figure-html/fig-tyovoimakustannukset-rajatuotto-2.png)
+
+Figure 29
+
+![](board_2026_files/figure-html/fig-tyovoimakustannukset-rajatuotto-3.png)
+
+Figure 30
+
+Toimialat ovat välilehden järjestyksessä, joka on myös mallikuvion
+järjestys. Asteikko yltää ykköseen kuten mallikuviossa: ykkösen kohdalla
+työvoimakustannus vastaa työn arvioitua rajatuottoa.
+
+### Työn tuottavuuden kasvun lähteet
+
+Työn tuottavuuden kasvun lähteet Suomen yksityisissä palveluissa.
+Kontribuutio työn tuottavuuden kasvuun, % vuodessa. Lähde: omat
+laskelmat.
+
+Näytä koodi
+
+``` r
+
+# Pylväät ovat hajotelman osat ja piste niiden summa, eli koko sektorin
+# tuottavuuden kasvu.
+k4_yht <- "Työn tuottavuus yksityisissä palveluissa"
+
+pdat <- luku3("kuvio4") |> 
+  mutate(series = stringr::str_wrap(series, 50))
+
+lvl <- levels(as_factor(pdat$series))      # kaikki 6 tasoa, k4_yht viimeisenä
+pal <- c(fpb_pal(5), NA)          # tai: c(scales::hue_pal()(5), NA)
+
+p <- pdat |>
+  filter(series != k4_yht) |>
+  ggplot(aes(key, values, fill = series)) +
+  geom_hline(yintercept = 0, linewidth = 0.3) +
+  geom_col() +
+  geom_point(data = filter(pdat, series == k4_yht),
+             aes(key, values, colour = series), shape = 16,
+             inherit.aes = FALSE) +
+  scale_fill_manual(  values = setNames(pal, lvl),                       limits = lvl, name = NULL) +
+  scale_colour_manual(values = setNames(c(rep(NA, 5), "grey10"), lvl),   limits = lvl, name = NULL) +
+  the_title_blank("xyl") +
+  the_legend_bot() +
+  guides(fill   = guide_legend(ncol = 2),
+         colour = guide_legend(ncol = 2)) +
+  theme(legend.text = element_text(size = 8)) 
+
+save_fig(p, "10_tuottavuuskasvun-lahteet", height = 11)
+save_fig_captioned(p, "10_tuottavuuskasvun-lahteet",
+  title = "Työn tuottavuuden kasvun lähteet",
+  subtitle = paste("Työn tuottavuuden kasvun lähteet Suomen yksityisissä palveluissa.",
+                   "Kontribuutio työn tuottavuuden kasvuun, % vuodessa."),
+  caption = "Lähde: omat laskelmat.")
+save_fig_data(p, "10_tuottavuuskasvun-lahteet", names_from = "series")
+```
+
+![](board_2026_files/figure-html/fig-tuottavuuskasvun-lahteet-1.png)
+
+Figure 31
+
+![](board_2026_files/figure-html/fig-tuottavuuskasvun-lahteet-2.png)
+
+Figure 32
+
+![](board_2026_files/figure-html/fig-tuottavuuskasvun-lahteet-3.png)
+
+Figure 33
+
+Näytä koodi
+
+``` r
+
+lvl <- levels(factor(pdat$series))      # kaikki 6 tasoa, k4_yht viimeisenä
+pal <- c(fpb_pal(5), NA)          # tai: c(scales::hue_pal()(5), NA)
+
+p <- pdat |>
+  filter(series != k4_yht) |>
+  ggplot(aes(key, values, fill = series)) +
+  geom_hline(yintercept = 0, linewidth = 0.3) +
+  geom_col() +
+  geom_point(data = filter(pdat, series == k4_yht),
+             aes(key, values, colour = series), shape = 16,
+             inherit.aes = FALSE) +
+  scale_fill_manual(  values = setNames(pal, lvl),                       limits = lvl, name = NULL) +
+  scale_colour_manual(values = setNames(c(rep(NA, 5), "grey10"), lvl),   limits = lvl, name = NULL) +
+  the_title_blank("xyl") +
+  the_legend_bot() +
+  guides(fill   = guide_legend(ncol = 2),
+         colour = guide_legend(ncol = 2))
+```
+
+Osat summautuvat pisteen arvoon. Pylväiden järjestys on välilehden
+sarakejärjestys; mallikuviossa kaksi viimeistä ovat toisin päin.
+
+### Digitaalisen intensiteetin luokat
+
+Yritysten jakautuminen digitaalisen intensiteetin luokkiin yksityisillä
+palvelualoilla. Osuus yrityksistä, %. Lähde: omat laskelmat.
+
+Näytä koodi
+
+``` r
+
+p <- luku3("kuvio11") |>
+  ggplot(aes(key, values, fill = series)) +
+  geom_col(position = "dodge", width = 0.7) +
+  the_title_blank("xyl") +
+  the_legend_bot() +
+  guides(fill = guide_legend(nrow = 3)) +
+  theme(legend.text = element_text(size = 8)) 
+
+save_fig(p, "11_digi-intensiteetti", height = 10)
+save_fig_captioned(p, "11_digi-intensiteetti",
+  title = "Digitaalisen intensiteetin luokat",
+  subtitle = paste("Yritysten jakautuminen digitaalisen intensiteetin luokkiin yksityisillä",
+                   "palvelualoilla. Osuus yrityksistä, %."),
+  caption = "Lähde: omat laskelmat.")
+save_fig_data(p, "11_digi-intensiteetti", names_from = "series")
+```
+
+![](board_2026_files/figure-html/fig-digi-intensiteetti-1.png)
+
+Figure 34
+
+![](board_2026_files/figure-html/fig-digi-intensiteetti-2.png)
+
+Figure 35
+
+![](board_2026_files/figure-html/fig-digi-intensiteetti-3.png)
+
+Figure 36
+
+Toimialat ovat välilehden huomautuksen mukaan TOL 2008:n luokat: kauppa
+(G45–47), kuljetus ja varastointi (H49–53), majoitus- ja
+ravitsemistoiminta (I55–56), informaatio ja viestintä (J58–63),
+kiinteistöala (L68), asiantuntijapalvelut (M69–74 pl. 75), tukipalvelut
+(N77–82) sekä tietokoneiden ja viestintälaitteiden korjaus (S951).
+Välilehdellä on lisäksi luokkien osuudet vuosittain 2015–2021, jota
+mallikuvio ei käytä.
+
+## Luvun 4 kuviot
+
+## Julkisen sektorin tuottavuus
+
+Julkinen sektori on tässä kolme toimialaa yhdessä: julkinen hallinto,
+koulutus sekä terveys- ja sosiaalipalvelut (NACE O–Q). Ne sisältävät,
+varsinkin terveyspalvelut, myös yksityisen sektorin tuotantoa, sillä
+pelkällä sektorijaolla ei ole saatavilla kattavaa maavertailuaineistoa.
+Toimialat erikseen ja pelkkään OECD:n aineistoon perustuva versio ovat
+[Julkisen sektorin
+tuottavuus](https://tuottavuuslautakunta.github.io/fiprod/articles/public.qmd)
+-artikkelissa.
+
+### Julkisen sektorin tuottavuus
+
+Työn tuottavuus julkisella sektorilla, arvonlisä / työtunnit vuoden 2020
+\$ hinnoin ostovoimakorjattuna. Indeksi, 2000 = 100. Lähde: Eurostat,
+OECD, Tuottavuuslautakunta.
+
+Näytä koodi
+
+``` r
+
+p <- dat_gva_ind_comb |>
+  filter(time >= "1980-01-01") |> 
+  filter_recode(
+    measure = c("GVAHRS"),
+    activity = c("Julkinen" = "OTQ"),
+    vars = c("fp_2020_ppp17")
+  ) |> 
+  mutate(values = rebase(values, time, baseyear = 2000), .by = where(is.factor)) |> 
+  filter(geo != "DK") |>
+  filter_recode(
+    geo = geos
+  ) |> 
+  ggplot(aes(time, values, colour = geo, linewidth = geo)) +
+  geom_line() +
+  scale_colour_manual(values = geos_colour) +
+  scale_linewidth_manual(values = geos_width) +
+  guides(colour = guide_legend(reverse = TRUE), linewidth = guide_legend(reverse = TRUE)) +
+  the_title_blank("xyl")
+
+save_fig(p, "12_tuottavuus-julkinen")
+save_fig_captioned(p, "12_tuottavuus-julkinen",
+  title = "Julkisen sektorin tuottavuus",
+  subtitle = paste("Työn tuottavuus julkisella sektorilla, arvonlisä / työtunnit vuoden 2020 $",
+                   "hinnoin ostovoimakorjattuna. Indeksi, 2000 = 100."),
+  caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta.")
+save_fig_data(p, "12_tuottavuus-julkinen", names_from = "geo")
+```
+
+![](board_2026_files/figure-html/fig-tuottavuus-julkinen-1.png)
+
+Figure 37
+
+![](board_2026_files/figure-html/fig-tuottavuus-julkinen-2.png)
+
+Figure 38
+
+![](board_2026_files/figure-html/fig-tuottavuus-julkinen-3.png)
+
+Figure 39
+
+Eurostatin tiedot haetaan NACE:n A\*10-tasolla, jossa julkinen hallinto,
+koulutus sekä terveys- ja sosiaalipalvelut ovat yksi toimiala (`OTQ`);
+OECD-mailla sama kokonaisuus on summattu toimialoista. Ostovoimakorjaus
+on toimialoittainen ja perustuu vuoden 2017 hintatasoon, joten kuviossa
+verrataan kasvua, ei tasoa.
+
+### Tuottavuuden kasvu julkisen sektorin kanssa ja ilman
+
+Työn tuottavuuden keskimääräinen vuosikasvu koko taloudessa, julkisella
+sektorilla ja ilman julkista sektoria sekä koko talouden ja ilman
+julkista sektoria laskettujen kasvuvauhtien erotus. Keskiarvo 1998–2023,
+%. Lähde: Eurostat, OECD, Tuottavuuslautakunta.
+
+Näytä koodi
+
+``` r
+
+# Kiinteähintaiset sarjat eivät ole yhteenlaskettavia, joten julkinen sektori
+# vähennetään koko taloudesta edellisen vuoden hintaisten sarjojen kautta ja
+# erotus ketjutetaan uudelleen. Työtunnit ovat additiivisia, joten ne
+# vähennetään suoraan.
+pdat <- dat_gva_ind_comb |> 
+  filter(time >= "1995-01-01") |> 
+  filter_recode(
+    measure = c("GVA", "HRS"),
+    activity = c("TOT" = "_T", "OTQ"),
+    vars = c("cp", "fp_2020_lc")
+  ) |> 
+  pivot_wider(names_from = c(measure, vars), values_from = values, names_sep = "__") |> 
+  select(-HRS__fp_2020_lc) |> 
+  mutate(GVA__pp = prev_year_prices(GVA__cp, GVA__fp_2020_lc, time), .by = c(geo, activity)) |> 
+  pivot_wider(
+    names_from = activity,
+    values_from = where(is.numeric),
+    names_sep = "___"
+  ) |> 
+  mutate(
+    GVA__cp___TOTex = GVA__cp___TOT - GVA__cp___OTQ,
+    HRS__cp___TOTex = HRS__cp___TOT - HRS__cp___OTQ,
+    GVA__pp___TOTex = GVA__pp___TOT - GVA__pp___OTQ
+  ) |> 
+  mutate(GVA__fp_2020_lc___TOTex = fixed_prices(GVA__cp___TOTex, GVA__pp___TOTex, time, 2020), .by = geo) |> 
+  pivot_longer(cols = where(is.numeric), names_to = c("vars", "activity"), names_sep = "___",
+               values_to = "values", names_transform = as_factor) |> 
+  pivot_wider(names_from = "vars", values_from = "values") |> 
+  mutate(GVAHRS__fp_2020_lc = GVA__fp_2020_lc / HRS__cp) |> 
+  pivot_longer(cols = where(is.numeric), names_to = c("measure", "vars"), names_sep = "__",
+               values_to = "values", names_transform = as_factor)
+
+p <- pdat |> 
+  filter_recode(
+    measure = "GVAHRS",
+    vars = "fp_2020_lc",
+    geo = geos
+  ) |> 
+  mutate(values = pc(values, 1, time), .by = c(geo, activity)) |> 
+  pivot_wider(names_from = activity, values_from = values) |> 
+  mutate(diff = TOT - TOTex) |> 
+  pivot_longer(cols = where(is.numeric), names_to = "activity", values_to = "values",
+               names_transform = as_factor) |> 
+  filter_recode(
+    activity =
+      c("Koko talous" = "TOT",
+        "Julkinen" = "OTQ",
+        "Ilman julkista" = "TOTex",
+        "Erotus" = "diff")
+  ) |> 
+  filter(year(time) %in% public_period) |> 
+  summarise(values = mean(values), .by = c(geo, activity)) |> 
+  mutate(geo = fct_reorder(geo, values, .fun = max)) |> 
+  ggplot(aes(geo, values, fill = activity)) +
+  geom_col(position = "dodge") +
+  the_title_blank("xyl")
+
+save_fig(p, "13_tuottavuuskasvu-julkinen")
+save_fig_captioned(p, "13_tuottavuuskasvu-julkinen",
+  title = "Tuottavuuden kasvu julkisen sektorin kanssa ja ilman",
+  subtitle = paste0(
+    "Työn tuottavuuden keskimääräinen vuosikasvu koko taloudessa, julkisella ",
+    "sektorilla ja ilman julkista sektoria sekä koko talouden ja ilman julkista ",
+    "sektoria laskettujen kasvuvauhtien erotus. Keskiarvo ", public_period_lab, ", %."),
+  caption = "Lähde: Eurostat, OECD, Tuottavuuslautakunta.")
+save_fig_data(p, "13_tuottavuuskasvu-julkinen", names_from = "activity")
+```
+
+![](board_2026_files/figure-html/fig-tuottavuuskasvu-julkinen-1.png)
+
+Figure 40
+
+![](board_2026_files/figure-html/fig-tuottavuuskasvu-julkinen-2.png)
+
+Figure 41
+
+![](board_2026_files/figure-html/fig-tuottavuuskasvu-julkinen-3.png)
+
+Figure 42
+
+Erotus kertoo, kuinka paljon julkinen sektori on hidastanut
+(negatiivinen luku) tai nopeuttanut koko talouden tuottavuuden kasvua
+verrattuna talouteen, josta julkinen sektori on poistettu. Keskiarvo
+lasketaan ilman puuttuvien vuosien korjausta, joten maa jää kuviosta
+pois, jos yksikin jakson vuosi puuttuu. Ilman julkista sektoria oleva
+arvonlisäys on ketjutettu uudelleen vuoden 2020 hintoihin omassa
+valuutassa; ks. [Talouskasvu ja
+tuottavuus](https://tuottavuuslautakunta.github.io/fiprod/articles/main.qmd).
+
+Luvun 4.2 sarjat tulevat muiden lukujen tapaan valmiina laskettuina
+Excel-tiedostosta `data-raw/rap_2026/Luku4_2.xlsx`, jossa on yksi
+välilehti kuviota kohden. Välilehdet luetaan skriptillä
+`data-raw/read_luku4_2.R`, joka pitää ajaa ennen tämän dokumentin
+kääntämistä.
+
+Kuvioiden 14 ja 15 mallikuviot ovat välilehdillä. Kuviolla 16 ei ole
+mallikuviota, vaan sen otsikko, alaotsikko, selitteet ja lähteet ovat
+välilehden sarakkeessa L tekstinä.
+
+### Työlliset julkisyhteisöissä ja yksityisellä sektorilla
+
+Työllisten määrä julkisyhteisöissä ja yksityisellä sektorilla. 1 000
+henkeä. Lähde: Tilastokeskus, kansantalouden tilinpito.
+
+Näytä koodi
+
+``` r
+
+# Julkisyhteisöt on mallikuviossa pinon alimpana, joten pino käännetään:
+# ggplot2 pinoaa oletuksena ensimmäisen tason päällimmäiseksi
+p <- luku4_2("kuvio14") |>
+  ggplot(aes(time, values, fill = series)) +
+  geom_col(position = position_stack(reverse = TRUE)) +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "14_tyolliset-sektoreittain")
+save_fig_captioned(p, "14_tyolliset-sektoreittain",
+  title = "Työlliset julkisyhteisöissä ja yksityisellä sektorilla",
+  subtitle = "Työllisten määrä julkisyhteisöissä ja yksityisellä sektorilla. 1 000 henkeä.",
+  caption = "Lähde: Tilastokeskus, kansantalouden tilinpito.")
+save_fig_data(p, "14_tyolliset-sektoreittain", names_from = "series")
+```
+
+![](board_2026_files/figure-html/fig-tyolliset-sektoreittain-1.png)
+
+Figure 43
+
+![](board_2026_files/figure-html/fig-tyolliset-sektoreittain-2.png)
+
+Figure 44
+
+![](board_2026_files/figure-html/fig-tyolliset-sektoreittain-3.png)
+
+Figure 45
+
+Kaksi viimeistä vuotta ovat ennakkotietoja. Välilehdellä ovat myös
+kotitaloudet ja kotitalouksia palvelevat voittoa tavoittelemattomat
+yhteisöt, jotka eivät ole mallikuviossa.
+
+### Alkavat eläkkeet
+
+Alkavat eläkkeet eläkelajeittain 2025–2044. Kumulatiivinen lukumäärä.
+Lähde: Keva (2025).
+
+Näytä koodi
+
+``` r
+
+p <- luku4_2("kuvio15") |>
+  ggplot(aes(time, values, fill = series)) +
+  geom_col(position = position_stack(reverse = TRUE)) +
+  scale_y_continuous(labels = scales::label_number(big.mark = " ")) +
+  the_title_blank("xyl") +
+  the_legend_bot() +
+  guides(fill = guide_legend(nrow = 2))
+
+save_fig(p, "15_alkavat-elakkeet")
+save_fig_captioned(p, "15_alkavat-elakkeet",
+  title = "Alkavat eläkkeet",
+  subtitle = "Alkavat eläkkeet eläkelajeittain 2025–2044. Kumulatiivinen lukumäärä.",
+  caption = "Lähde: Keva (2025).")
+save_fig_data(p, "15_alkavat-elakkeet", names_from = "series")
+```
+
+![](board_2026_files/figure-html/fig-alkavat-elakkeet-1.png)
+
+Figure 46
+
+![](board_2026_files/figure-html/fig-alkavat-elakkeet-2.png)
+
+Figure 47
+
+![](board_2026_files/figure-html/fig-alkavat-elakkeet-3.png)
+
+Figure 48
+
+### Inhimillinen pääomakanta
+
+Inhimillisen pääomakannan kehitys kolmessa eri ennusteskenaariossa
+2024–2075. Milj. euroa, volyymi, viitevuosi 2015. Lähteet:
+Tilastokeskus, laskelmat Arto Kokkinen (VTV) ja Pirkka Jalasjoki (Suomen
+Pankki).
+
+Näytä koodi
+
+``` r
+
+# Välilehden selitetekstit ovat skenaarion nimi ja sen määritelmä kaksoispisteen
+# erottamina. Selitteeseen jää nimi ja määritelmät ovat kuvion alla, koska
+# kokonaiset tekstit veisivät puolet kuvion korkeudesta.
+
+lines <- c("Muuttumaton", "Perus", "Optimistinen")
+
+p <- luku4_2("kuvio16") |>
+  mutate(values = values / 1000) |> 
+  mutate(vars = fct_rev(as_factor(series))) %>%{
+  ggplot(droplevels(filter(., !(vars %in% lines))), aes(time, values, fill = vars)) +
+  geom_area() +
+  geom_line(data = (filter(., vars %in% lines)), aes(time, values, colour = vars, fill = NULL)) +
+  the_title_blank("xyl") +
+      the_legend_bot() +
+  scale_colour_manual(values = rev(c("grey25", "grey50", "grey75"))) +
+  geom_hline(yintercept = 0) +
+      guides(fill = guide_legend(override.aes = list(colour = NA), nrow = 3), colour = guide_legend(nrow = 3)) +
+      theme(panel.grid.major.x = element_blank())}
+
+save_fig(p, "16_inhimillinen-paaomakanta")
+save_fig_captioned(p, "16_inhimillinen-paaomakanta",
+  title = "Inhimillinen pääomakanta",
+  subtitle = paste("Inhimillisen pääomakannan kehitys kolmessa eri ennusteskenaariossa 2024–2075.",
+                   "Milj. euroa, volyymi, viitevuosi 2015."),
+  caption = "Lähteet: Tilastokeskus, laskelmat Arto Kokkinen (VTV) ja Pirkka Jalasjoki (Suomen Pankki).")
+# p$data on vain pinottujen skenaarioiden osuus (viivasarjat ovat oman
+# geom_line()-kerroksen dataa), joten vain ne tallentuvat leveään tiedostoon
+save_fig_data(p, "16_inhimillinen-paaomakanta", names_from = "vars")
+```
+
+![](board_2026_files/figure-html/fig-inhimillinen-paaomakanta-1.png)
+
+Figure 49
+
+![](board_2026_files/figure-html/fig-inhimillinen-paaomakanta-2.png)
+
+Figure 50
+
+![](board_2026_files/figure-html/fig-inhimillinen-paaomakanta-3.png)
+
+Figure 51
+
+Perusskenaariossa 50 %:lla 25–34-vuotiaista on korkea-asteen tutkinto
+vuoteen 2035 mennessä ja optimistisessa skenaariossa 70 %:lla vuoteen
+2040 mennessä. Skenaariot eroavat toisistaan vasta vuodesta 2024, joten
+sitä ennen viivat ovat päällekkäin. Välilehdellä on lisäksi
+perusskenaarion pääomakanta koulutusasteittain, jota kuvio ei käytä.
+Menetelmän kuvaus: Kokkinen, A., Obstbaum, M., ja Mäki-Fränti P. (2021).
+Bank of Finland’s Long-Run Forecast Framework with Human Capital. BoF
+Economics Review 10-2021.
+
+## Luvun 5 kuviot
+
+Luvun 5 sarjat eivät tule tilastorajapinnoista vaan valmiina laskettuina
+Excel-tiedostosta `data-raw/rap_2026/Luku5.xlsx`, jossa on yksi
+välilehti kuviota kohden ja jokaisella välilehdellä myös mallikuvio.
+Välilehdet luetaan yhdeksi pitkäksi taulukoksi skriptillä
+`data-raw/read_luku5.R`, joka pitää ajaa ennen tämän dokumentin
+kääntämistä.
+
+Mallikuvioista on otettu se, mitkä sarjat kuviossa ovat, sarjojen
+selitteet ja kuvion 20 paneelien otsikot. Muuten kuviot ovat samassa
+tyylissä kuin raportin muut kuviot: otsikko, alaotsikko ja lähde ovat
+tekstinä kuvion yläpuolella ja jokainen kuvio tallentuu myös png- ja
+pdf-tiedostoksi.
+
+### Työn tuottavuus ja reaalipalkat
+
+Työn tuottavuus ja reaalipalkat arvonlisäyksen hinnoin. Indeksi, 2000 =
+100, neljännesvuosittain. Lähde: Tuottavuuslautakunnan omat laskelmat.
+
+Näytä koodi
+
+``` r
+
+p <- luku5("kuvio16") |>
+  ggplot(aes(time, values, colour = series)) +
+  geom_line() +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "17_tuottavuus-reaalipalkat")
+save_fig_captioned(p, "17_tuottavuus-reaalipalkat",
+  title = "Työn tuottavuus ja reaalipalkat",
+  subtitle = paste("Työn tuottavuus ja reaalipalkat arvonlisäyksen hinnoin. Indeksi, 2000 = 100,",
+                   "neljännesvuosittain."),
+  caption = "Lähde: Tuottavuuslautakunnan omat laskelmat.")
+save_fig_data(p, "17_tuottavuus-reaalipalkat", names_from = "series")
+```
+
+![](board_2026_files/figure-html/fig-tuottavuus-reaalipalkat-1.png)
+
+Figure 52
+
+![](board_2026_files/figure-html/fig-tuottavuus-reaalipalkat-2.png)
+
+Figure 53
+
+![](board_2026_files/figure-html/fig-tuottavuus-reaalipalkat-3.png)
+
+Figure 54
+
+### Palkkatyön kannattavuus ja työtunnit
+
+Palkkatyön kannattavuussuhde ja palkansaajien tehdyt työtunnit suhteessa
+20-69-vuotiaisiin. Indeksi, keskiarvo 1981–2024 = 100. Lähde:
+Kansantalouden tilinpito ja AMECO-tietokanta.
+
+Näytä koodi
+
+``` r
+
+p <- luku5("kuvio17") |>
+  ggplot(aes(time, values, colour = series)) +
+  geom_hline(yintercept = 100, linewidth = 0.3) +
+  geom_line() +
+  the_title_blank("xyl") +
+  guides(colour = guide_legend(nrow = 2)) +
+  the_legend_bot()
+
+save_fig(p, "18_kannattavuus-tyotunnit")
+save_fig_captioned(p, "18_kannattavuus-tyotunnit",
+  title = "Palkkatyön kannattavuus ja työtunnit",
+  subtitle = paste0(
+    "Palkkatyön kannattavuussuhde ja palkansaajien tehdyt työtunnit suhteessa ",
+    "20-69-vuotiaisiin. ", sub_ind_k17, "."),
+  caption = "Lähde: Kansantalouden tilinpito ja AMECO-tietokanta.")
+save_fig_data(p, "18_kannattavuus-tyotunnit", names_from = "series")
+```
+
+![](board_2026_files/figure-html/fig-kannattavuus-tyotunnit-1.png)
+
+Figure 55
+
+![](board_2026_files/figure-html/fig-kannattavuus-tyotunnit-2.png)
+
+Figure 56
+
+![](board_2026_files/figure-html/fig-kannattavuus-tyotunnit-3.png)
+
+Figure 57
+
+### Tutkimus- ja kehityspanostukset kokoluokittain
+
+Yritysten panostukset tutkimus- ja kehitystoimintaan tutkimus- ja
+kehityshenkilöstön työvuosina mitattuna. Indeksi, 2004 = 100. Lähde:
+Kansantalouden tilinpito.
+
+Näytä koodi
+
+``` r
+
+p <- luku5("kuvio18") |>
+  ggplot(aes(time, values, colour = series)) +
+  geom_hline(yintercept = 100, linewidth = 0.3) +
+  geom_line() +
+  scale_y_continuous(n.breaks = 8) +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "19_tk-panostukset")
+save_fig_captioned(p, "19_tk-panostukset",
+  title = "T&K-panostukset kokoluokittain",
+  subtitle = paste("Yritysten kehityshenkilöstön työpanos, Indeksi, 2004 = 100"),
+  caption = "Lähde: Kansantalouden tilinpito.")
+save_fig_data(p, "19_tk-panostukset", names_from = "series")
+```
+
+![](board_2026_files/figure-html/fig-tk-panostukset-1.png)
+
+Figure 58
+
+![](board_2026_files/figure-html/fig-tk-panostukset-2.png)
+
+Figure 59
+
+![](board_2026_files/figure-html/fig-tk-panostukset-3.png)
+
+Figure 60
+
+### Tuottavuuden kehitys yrityssektorin ja yritysten tasolla
+
+Tuottavuuden kehitys yrityssektorin tasolla ja yritysten tasolla.
+%-yksikköä, 1995 = 0. Lähde: Tuottavuuslautakunnan omat laskelmat.
+
+Näytä koodi
+
+``` r
+
+p <- luku5("kuvio19") |>
+  mutate(series = fct_recode(series, "Talouden taso" = "Yrityssektorin taso")) |> 
+  ggplot(aes(time, values, colour = series)) +
+  geom_hline(yintercept = 0, linewidth = 0.3) +
+  geom_line() +
+   geom_smooth(data = \(d) filter(d, series == "Yritysten taso"), 
+               method = "lm", se = FALSE,
+               linetype = "dashed") +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "20_tuottavuus-yritystaso")
+save_fig_captioned(p, "20_tuottavuus-yritystaso",
+  title = "Tuottavuuden kehitys yrityssektorin ja yritysten tasolla",
+  subtitle = "Tuottavuuden kehitys yrityssektorin tasolla ja yritysten tasolla. %-yksikköä, 1995 = 0.",
+  caption = "Lähde: Tuottavuuslautakunnan omat laskelmat.")
+save_fig_data(p, "20_tuottavuus-yritystaso", names_from = "series")
+```
+
+![](board_2026_files/figure-html/fig-tuottavuus-yritystaso-1.png)
+
+Figure 61
+
+![](board_2026_files/figure-html/fig-tuottavuus-yritystaso-2.png)
+
+Figure 62
+
+![](board_2026_files/figure-html/fig-tuottavuus-yritystaso-3.png)
+
+Figure 63
+
+### Yritysten taso ja luova tuho teknologiatason mukaan
+
+Tuottavuuden kehitys teknologiatason mukaan, yritysten tasolla ja luovan
+tuhon kautta. %-yksikköä, 1995 = 0. Lähde: Tuottavuuslautakunnan omat
+laskelmat.
+
+Näytä koodi
+
+``` r
+
+df <- luku5("kuvio20")
+
+span <- max(tapply(df$values, df$panel, \(v) diff(range(v)))) * 1.05
+
+rajat <- df |>
+  group_by(panel, series) |>
+  reframe(time = min(time),
+          values = mean(range(values)) + c(-1, 1) * span / 2) 
+
+
+p <- luku5("kuvio20") |>
+  ggplot(aes(time, values, colour = series)) +
+  facet_wrap(~ panel, scales = "free_y") +
+  scale_y_continuous(breaks = scales::breaks_width(10)) +
+  geom_hline(yintercept = 0, linewidth = 0.3) +
+  geom_line() +
+  ggh4x::facetted_pos_scales(
+    y = list(scale_y_continuous(limits = c(-60, 10)),
+             scale_y_continuous(limits = c(0, 70)))
+  )  +
+  # geom_blank(data = rajat) +
+  the_title_blank("xyl") +
+  the_legend_bot() +
+  guides(colour = guide_legend(nrow = 2))
+
+save_fig(p, "21_luova-tuho-teknologia")
+save_fig_captioned(p, "21_luova-tuho-teknologia",
+  title = "Yritysten taso ja luova tuho teknologiatason mukaan",
+  subtitle = paste("Tuottavuuden kehitys teknologiatason mukaan, yritysten tasolla ja luovan tuhon",
+                   "kautta. %-yksikköä, 1995 = 0."),
+  caption = "Lähde: Tuottavuuslautakunnan omat laskelmat.")
+save_fig_data(p, "21_luova-tuho-teknologia", names_from = c("panel", "series"))
+```
+
+![](board_2026_files/figure-html/fig-luova-tuho-teknologia-1.png)
+
+Figure 64
+
+![](board_2026_files/figure-html/fig-luova-tuho-teknologia-2.png)
+
+Figure 65
+
+![](board_2026_files/figure-html/fig-luova-tuho-teknologia-3.png)
+
+Figure 66
+
+Paneelien otsikot ja sarjojen selitteet ovat mallikuvioista. Paneeleilla
+on sama asteikko, koska molemmat ovat samaa yksikköä ja niiden
+suuruusluokkien vertailu on kuvion pointti; mallikuviot ovat kaksi
+erillistä kuviota omilla asteikoillaan.
+
+### Divergenssikomponentti ja hajonnan muutos
+
+Divergenssikomponentin vaikutus (vasen asteikko) ja tuottavuuden
+hajonnan muutos (oikea asteikko), havaitut ja HP-tasoitetut sarjat.
+Lähde: Tuottavuuslautakunnan omat laskelmat.
+
+Näytä koodi
+
+``` r
+
+# Oikean asteikon sarjat piirretään vasemmalle asteikolle viidesosaan
+# kutistettuina, ja oikea asteikko kertoo ne takaisin. Näin nolla on samalla
+# kohdalla molemmilla asteikoilla; mallikuviossa asteikot eivät ole nollassa
+# kohdakkain.
+k21_oikea <- c("Hajonnan muutos (oikea asteikko)")
+k21_suhde <- 5
+
+p <- luku5("kuvio21") |>
+  separate_wider_delim(series, delim = ", ", names = c("series", "type"), 
+                       too_few = "align_start") |> 
+  mutate(series = as_factor(series),
+         series = fct_recode(series,
+           "Divergenssi-komponentti (vasen asteikko)" = "Divergenssi-komponentti",
+           "Hajonnan muutos (oikea asteikko)" = "Hajonnan muutos")) |> 
+
+  mutate(
+    type = if_else(is.na(type), "Alkuperäinen", "HP-tasoitettu"),
+    type = as_factor(type)) |>
+  mutate(values = if_else(series %in% k21_oikea, values / k21_suhde, values)) |>
+  ggplot(aes(time, values, colour = series, linewidth = type)) +
+  geom_hline(yintercept = 0, linewidth = 0.3) +
+  geom_line() +
+  scale_linewidth_manual(values = c(0.5,2), guide = "none") +
+  scale_y_continuous(
+    breaks = scales::breaks_pretty(n = 10),
+    sec.axis = sec_axis(~ . * k21_suhde, breaks = scales::breaks_pretty(n = 10))
+  ) +
+  the_title_blank("xyl") +
+  the_legend_bot() +
+  # selitteet ovat pitkiä, joten yksi sarake mahtuu kuvion leveydelle
+  guides(colour = guide_legend(ncol = 1))
+
+save_fig(p, "22_divergenssi-hajonta")
+save_fig_captioned(p, "22_divergenssi-hajonta",
+  title = "Divergenssikomponentti ja hajonnan muutos",
+  subtitle = paste("Divergenssikomponentin vaikutus (vasen asteikko) ja tuottavuuden hajonnan",
+                   "muutos (oikea asteikko), havaitut ja HP-tasoitetut sarjat."),
+  caption = "Lähde: Tuottavuuslautakunnan omat laskelmat.")
+save_fig_data(p, "22_divergenssi-hajonta", names_from = c("series", "type"))
+```
+
+![](board_2026_files/figure-html/fig-divergenssi-hajonta-1.png)
+
+Figure 67
+
+![](board_2026_files/figure-html/fig-divergenssi-hajonta-2.png)
+
+Figure 68
+
+![](board_2026_files/figure-html/fig-divergenssi-hajonta-3.png)
+
+Figure 69
+
+Oikea asteikko on viisinkertainen vasempaan verrattuna. Hajonnan
+muutoksen sarjoista puuttuu ensimmäinen vuosi, koska ne ovat muutoksia.
+
+## Luvun 6 kuviot
+
+Luvun 6 sarjat tulevat lukujen 3 ja 5 tapaan valmiina laskettuina
+Excel-tiedostosta `data-raw/rap_2026/Luku6.xlsx`, jossa on yksi
+välilehti kuviota kohden. Työkirja on koottu luvun 6 käsikirjoituksen
+mukana tulleista yksittäisistä datapistetiedostoista;
+Sisältö-välilehdellä on kuvioiden otsikot ja lähdetiedostot. Välilehdet
+luetaan skriptillä `data-raw/read_luku6.R`, joka pitää ajaa ennen tämän
+dokumentin kääntämistä.
+
+Mallikuviot ovat luvun 6 käsikirjoituksessa, eivät työkirjassa. Niistä
+on otettu se, mitkä sarjat kuviossa ovat, sarjojen selitteet ja
+paneelien otsikot; otsikot ja lähteet ovat käsikirjoituksen
+kuvatekstejä.
+
+### Toimialojen keskittyneisyys EU-maissa
+
+Toimialojen keskittyneisyyden kehitys eri EU-maissa. CR4-osuus, %.
+Lähde: Anttinen ym. (2026) Calligaris ym. (2024) lukuihin perustuen.
+
+Näytä koodi
+
+``` r
+
+# Suomi ja Eurooppa erikseen, muut maat yhtenä harmaana joukkona kuten mallissa
+k23_colour <- set_names(c("grey80", ggcustom_pal(2, "fpb")),
+                        c("Muut maat", "Suomi", "Eurooppa (BKT-painotettu)"))
+k23_width <- set_names(c(0.6, 2, 1.3), names(k23_colour))
+
+p <- luku6("kuvio23") |>
+  # maat piirtyvät sarjan järjestyksessä, jotta Suomi ja Eurooppa tulevat
+  # harmaiden viivojen päälle
+  mutate(key = fct_reorder(key, as.integer(series))) |>
+  ggplot(aes(time, values, colour = series, linewidth = series, group = key)) +
+  geom_line() +
+  scale_colour_manual(values = k23_colour) +
+  scale_linewidth_manual(values = k23_width) +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "23_keskittyminen-eu")
+save_fig_captioned(p, "23_keskittyminen-eu",
+  title = "Toimialojen keskittyneisyys EU-maissa",
+  subtitle = "Toimialojen keskittyneisyyden kehitys eri EU-maissa. CR4-osuus, %.",
+  caption = "Lähde: Anttinen ym. (2026) Calligaris ym. (2024) lukuihin perustuen.")
+# key on maakohtainen, series vain ryhmittelyä (moni maa jakaa saman "Muut
+# maat" -sarjan), joten leventäminen tehdään key:n mukaan
+save_fig_data(p, "23_keskittyminen-eu", names_from = "key")
+```
+
+![](board_2026_files/figure-html/fig-keskittyminen-eu-1.png)
+
+Figure 70
+
+![](board_2026_files/figure-html/fig-keskittyminen-eu-2.png)
+
+Figure 71
+
+![](board_2026_files/figure-html/fig-keskittyminen-eu-3.png)
+
+Figure 72
+
+Harmaina viivoina ovat Belgia, Espanja, Italia, Kreikka, Norja,
+Portugali, Puola, Ranska, Ruotsi, Saksa, Slovenia, Tanska, Unkari ja
+Yhdistynyt kuningaskunta. CR4-osuus on toimialan neljän suurimman
+yrityksen osuus, ja maittaiset luvut ovat toimialojen yli laskettuja
+keskiarvoja.
+
+### Toimialojen keskittymisindeksit Suomessa
+
+Toimialojen keskittymisindeksit Suomessa 2014–2024. HHI-indeksi ja
+CR4-osuus, %. Lähde: Anttinen ym. (2026).
+
+Näytä koodi
+
+``` r
+
+p <- luku6("kuvio24") |> 
+  mutate(panel = fct_recode(panel, "CR4, %" = "CR4")) |> 
+  ggplot(aes(time, values, linetype = series)) +
+  facet_wrap(~ panel, scales = "free_y") +
+  geom_line() +
+  scale_linetype_manual(values = c(1, 3, 3)) +
+  scale_y_continuous(n.breaks = 8) +
+  expand_limits(y = 0) +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "24_keskittymisindeksit")
+save_fig_captioned(p, "24_keskittymisindeksit",
+  title = "Toimialojen keskittymisindeksit Suomessa",
+  subtitle = "Toimialojen keskittymisindeksit Suomessa 2014–2024. HHI-indeksi ja CR4-osuus, %.",
+  caption = "Lähde: Anttinen ym. (2026).")
+save_fig_data(p, "24_keskittymisindeksit", names_from = c("panel", "series"))
+```
+
+![](board_2026_files/figure-html/fig-keskittymisindeksit-1.png)
+
+Figure 73
+
+![](board_2026_files/figure-html/fig-keskittymisindeksit-2.png)
+
+Figure 74
+
+![](board_2026_files/figure-html/fig-keskittymisindeksit-3.png)
+
+Figure 75
+
+Paneelien asteikot ovat eri yksiköissä, HHI indeksipisteinä ja CR4
+prosentteina, joten niillä on omat asteikkonsa. HHI on toimialan
+yritysten markkinaosuuksien neliöiden summa ja saa arvoja välillä 0 ja
+10 000; p25 ja p75 ovat toimialojen jakauman ala- ja yläneljänneksen
+rajat.
+
+### Markkinoille tulo ja poistuminen
+
+Markkinoille tulleiden ja poistuneiden yritysten osuus Suomessa
+2014–2024. Osuus yrityksistä, %. Lähde: Anttinen ym. (2026).
+
+Näytä koodi
+
+``` r
+
+p <- luku6("kuvio25") |>
+  ggplot(aes(time, values, colour = series)) +
+  geom_line() +
+  expand_limits(y = c(0, 10)) +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "25_markkinoille-tulo")
+save_fig_captioned(p, "25_markkinoille-tulo",
+  title = "Markkinoille tulo ja poistuminen",
+  subtitle = "Markkinoille tulleiden ja poistuneiden yritysten osuus Suomessa 2014–2024. Osuus yrityksistä, %.",
+  caption = "Lähde: Anttinen ym. (2026).")
+save_fig_data(p, "25_markkinoille-tulo", names_from = "series")
+```
+
+![](board_2026_files/figure-html/fig-markkinoille-tulo-1.png)
+
+Figure 76
+
+![](board_2026_files/figure-html/fig-markkinoille-tulo-2.png)
+
+Figure 77
+
+![](board_2026_files/figure-html/fig-markkinoille-tulo-3.png)
+
+Figure 78
+
+Alalta poistumisen viimeinen vuosi on 2023, koska poistuminen tiedetään
+vasta seuraavan vuoden tiedoista.
+
+### Suurimpien yritysten pysyvyys
+
+Suurimpien yritysten markkinaosuuksien pysyvyys Suomessa 2014–2024.
+Osuus yrityksistä, %. Lähde: Anttinen ym. (2026).
+
+Näytä koodi
+
+``` r
+
+p <- luku6("kuvio26") |>
+  ggplot(aes(time, values)) +
+  geom_line() +
+  expand_limits(y = c(65, 80)) +
+  scale_y_continuous(n.breaks = 4) +
+  the_title_blank("xyl")
+
+save_fig(p, "26_suurimpien-pysyvyys")
+save_fig_captioned(p, "26_suurimpien-pysyvyys",
+  title = "Suurimpien yritysten pysyvyys",
+  subtitle = "Suurimpien yritysten markkinaosuuksien pysyvyys, osuus yrityksistä, %",
+  caption = "Lähde: Anttinen ym. (2026).")
+save_fig_data(p, "26_suurimpien-pysyvyys")
+```
+
+![](board_2026_files/figure-html/fig-suurimpien-pysyvyys-1.png)
+
+Figure 79
+
+![](board_2026_files/figure-html/fig-suurimpien-pysyvyys-2.png)
+
+Figure 80
+
+![](board_2026_files/figure-html/fig-suurimpien-pysyvyys-3.png)
+
+Figure 81
+
+### Voittomarginaalit
+
+Voittomarginaalit Suomessa 2014–2023. Indeksi, 2014 = 100. Lähde:
+Anttinen ym. (2026).
+
+Näytä koodi
+
+``` r
+
+p <- luku6("kuvio27") |>
+  ggplot(aes(time, values, linetype = series)) +
+  # geom_hline(yintercept = 100, linewidth = 0.3) +
+  geom_line() +
+  scale_linetype_manual(values = c(1, 3, 3)) +
+  scale_y_continuous(n.breaks = 4) +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "27_voittomarginaalit")
+save_fig_captioned(p, "27_voittomarginaalit",
+  title = "Voittomarginaalit",
+  subtitle = "Voittomarginaalit Suomessa 2014–2023. Indeksi, 2014 = 100.",
+  caption = "Lähde: Anttinen ym. (2026).")
+save_fig_data(p, "27_voittomarginaalit", names_from = "series")
+```
+
+![](board_2026_files/figure-html/fig-voittomarginaalit-1.png)
+
+Figure 82
+
+![](board_2026_files/figure-html/fig-voittomarginaalit-2.png)
+
+Figure 83
+
+![](board_2026_files/figure-html/fig-voittomarginaalit-3.png)
+
+Figure 84
+
+### Toimintaylijäämän ja tuotoksen suhde
+
+Toimintaylijäämän ja tuotoksen suhde Suomessa, Yhdysvalloissa ja
+Euroopassa vuosina 2000–2024. %, yrityssektori ilman kiinteistöalaa.
+Lähde: OECD:n tietokannat.
+
+Näytä koodi
+
+``` r
+
+p <- luku6("kuvio28") |>
+  ggplot(aes(time, values, colour = series)) +
+  geom_line() +
+  scale_y_continuous(n.breaks = 8) +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "28_toimintaylijaama-tuotos")
+save_fig_captioned(p, "28_toimintaylijaama-tuotos",
+  title = "Toimintaylijäämän ja tuotoksen suhde",
+  subtitle = paste("Toimintaylijäämän ja tuotoksen suhde Suomessa, Yhdysvalloissa ja Euroopassa",
+                   "vuosina 2000–2024. %, yrityssektori ilman kiinteistöalaa."),
+  caption = "Lähde: OECD:n tietokannat.")
+save_fig_data(p, "28_toimintaylijaama-tuotos", names_from = "series")
+```
+
+![](board_2026_files/figure-html/fig-toimintaylijaama-tuotos-1.png)
+
+Figure 85
+
+![](board_2026_files/figure-html/fig-toimintaylijaama-tuotos-2.png)
+
+Figure 86
+
+![](board_2026_files/figure-html/fig-toimintaylijaama-tuotos-3.png)
+
+Figure 87
+
+Eurooppa on Alankomaat, Belgia, Espanja, Irlanti, Islanti,
+Iso-Britannia, Italia, Itävalta, Kreikka, Latvia, Liettua, Luxemburg,
+Norja, Portugali, Puola, Ranska, Ruotsi, Saksa, Slovakia, Slovenia,
+Suomi, Tanska, Tšekki, Unkari ja Viro. Yhdysvalloilta ei ole tietoa
+kahdelta viimeiseltä vuodelta.
+
+### Kokonaistuottavuuden kehitys
+
+Kokonaistuottavuuden kehitys Suomessa 2014–2024. Indeksi, 2014 = 100.
+Lähde: Anttinen ym. (2026).
+
+Näytä koodi
+
+``` r
+
+p <- luku6("kuvio29") |>
+  ggplot(aes(time, values, linetype = series)) +
+  geom_hline(yintercept = 100, linewidth = 0.3) +
+  geom_line() +
+  scale_linetype_manual(values = c(1, 3, 3)) +
+  scale_y_continuous(n.breaks = 5) +
+  expand_limits(y = c(90, 110)) +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "29_kokonaistuottavuus")
+save_fig_captioned(p, "29_kokonaistuottavuus",
+  title = "Kokonaistuottavuuden kehitys",
+  subtitle = "Kokonaistuottavuuden kehitys Suomessa 2014–2024. Indeksi, 2014 = 100.",
+  caption = "Lähde: Anttinen ym. (2026).")
+save_fig_data(p, "29_kokonaistuottavuus", names_from = "series")
+```
+
+![](board_2026_files/figure-html/fig-kokonaistuottavuus-1.png)
+
+Figure 88
+
+![](board_2026_files/figure-html/fig-kokonaistuottavuus-2.png)
+
+Figure 89
+
+![](board_2026_files/figure-html/fig-kokonaistuottavuus-3.png)
+
+Figure 90
+
+### Työn tuottavuus Suomessa, Yhdysvalloissa ja Euroopassa
+
+Työn tuottavuus Suomessa, Yhdysvalloissa ja Euroopassa vuosina
+2000–2024. Indeksi, 2000 = 100. Lähde: OECD:n tietokannat.
+
+Näytä koodi
+
+``` r
+
+p <- luku6("kuvio30") |>
+  ggplot(aes(time, values, colour = series)) +
+  geom_line() +
+  scale_y_continuous(n.breaks = 8) +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "30_tuottavuus-vertailu")
+save_fig_captioned(p, "30_tuottavuus-vertailu",
+  title = "Työn tuottavuus Suomessa, Yhdysvalloissa ja Euroopassa",
+  subtitle = "Työn tuottavuus Suomessa, Yhdysvalloissa ja Euroopassa vuosina 2000–2024. Indeksi, 2000 = 100.",
+  caption = "Lähde: OECD:n tietokannat.")
+save_fig_data(p, "30_tuottavuus-vertailu", names_from = "series")
+```
+
+![](board_2026_files/figure-html/fig-tuottavuus-vertailu-1.png)
+
+Figure 91
+
+![](board_2026_files/figure-html/fig-tuottavuus-vertailu-2.png)
+
+Figure 92
+
+![](board_2026_files/figure-html/fig-tuottavuus-vertailu-3.png)
+
+Figure 93
+
+Eurooppa on sama 25 maan joukko kuin toimintaylijäämän ja tuotoksen
+suhdetta esittävässä kuviossa.
+
+### Investoinnit suhteessa liikevaihtoon
+
+Investointien ja liikevaihdon suhde Suomessa 2014–2024. Investoinnit
+suhteessa liikevaihtoon, %. Lähde: Anttinen ym. (2026).
+
+Näytä koodi
+
+``` r
+
+p <- luku6("kuvio31") |>
+  ggplot(aes(time, values)) +
+  facet_wrap(~ panel) +
+  geom_line() +
+  expand_limits(y = c(0,10)) +
+  the_title_blank("xyl")
+
+save_fig(p, "31_investoinnit-liikevaihto")
+save_fig_captioned(p, "31_investoinnit-liikevaihto",
+  title = "Investoinnit suhteessa liikevaihtoon",
+  subtitle = paste("Investointien ja liikevaihdon suhde Suomessa 2014–2024. Investoinnit suhteessa",
+                   "liikevaihtoon, %."),
+  caption = "Lähde: Anttinen ym. (2026).")
+save_fig_data(p, "31_investoinnit-liikevaihto", names_from = "panel")
+```
+
+![](board_2026_files/figure-html/fig-investoinnit-liikevaihto-1.png)
+
+Figure 94
+
+![](board_2026_files/figure-html/fig-investoinnit-liikevaihto-2.png)
+
+Figure 95
+
+![](board_2026_files/figure-html/fig-investoinnit-liikevaihto-3.png)
+
+Figure 96
+
+Paneeleilla on sama asteikko kuten mallikuviossa, koska yksikkö on sama.
