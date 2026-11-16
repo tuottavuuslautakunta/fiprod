@@ -51,6 +51,7 @@ jobs:
           FIPROD_UPDATE_DATA: "true"
         run: |
           if (requireNamespace("devtools", quietly = TRUE)) devtools::load_all() else library(fiprod)
+          library(pttdatahaku)
           source("data-raw/read_ggdc_data.R")
           source("data-raw/data_main.R")
         shell: Rscript {0}
