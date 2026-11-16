@@ -188,6 +188,12 @@ oecd_clean_data <- function(df = NULL, sdmx_obj = NULL, drop_vars = NULL, vars =
 #'   default) fetches every period, as the existing `get_oecd_*.R` scripts do.
 #' @param base_url The OECD SDMX REST API's base URL. Exposed for testing;
 #'   there should be no reason to change it otherwise.
+#' @param connecttimeout,timeout Connection and total request time limits (in
+#'   seconds), passed straight to \code{\link[curl]{new_handle}}. Plain
+#'   \code{xml2::read_xml(url)} opens the connection through \code{curl}
+#'   without any time limit of its own, so a stalled server (or a network
+#'   path that accepts the connection but never finishes sending data) would
+#'   otherwise hang indefinitely instead of raising an error.
 #'
 #' @return A data frame of the raw SDMX observations.
 #'
@@ -204,9 +210,12 @@ oecd_clean_data <- function(df = NULL, sdmx_obj = NULL, drop_vars = NULL, vars =
 #'
 #' @export
 oecd_get_dataset <- function(dataset, filter, start = NULL, end = NULL,
-                             base_url = "https://sdmx.oecd.org/public/rest") {
+                             base_url = "https://sdmx.oecd.org/public/rest",
+                             connecttimeout = 30, timeout = 180) {
   url <- .oecd_dataset_url(dataset, filter, start, end, base_url)
-  doc <- xml2::read_xml(url)
+  handle <- curl::new_handle(connecttimeout = connecttimeout, timeout = timeout)
+  con <- curl::curl(url, handle = handle)
+  doc <- xml2::read_xml(con)
   .sdmx_generic_to_df(doc)
 }
 

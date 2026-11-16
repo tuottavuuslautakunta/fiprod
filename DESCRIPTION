@@ -21,9 +21,11 @@ Suggests:
     testthat (>= 3.2.0),
     here (>= 1.0.1),
     writexl,
-    usethis
+    usethis,
+    R.utils
 VignetteBuilder: knitr, quarto
 Imports:
+    curl,
     dplyr,
     eurostat,
     nanoparquet,
