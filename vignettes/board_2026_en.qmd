@@ -15,17 +15,24 @@ Updated: `r Sys.Date()`
 
 The figures of the report, in English. This is the English version of
 [Tuottavuuslautakunnan raportti 2026](board_2026.qmd): the same figures with the
-same names, but the labels and the text are in English and the files (a png and
-a pdf of each figure) are written to a folder of their own (`figures/en/<year>/`
-instead of `figures/<year>/`), so that the two language versions never overwrite
-each other. Titles, subtitles and sources are text above the figure, not part of the
-figure itself.
+same file names, but the labels and the text are in English. Titles, subtitles
+and sources are text above the figure, not part of the figure itself, and every
+figure is also saved as a png and a pdf in a folder named after the year of
+publication. The files are written to `figures/en/<year>/` instead of
+`figures/<year>/`, so that the two language versions never overwrite each
+other.
+
+In the folder `figures/en/captioned/<year>/` each figure is also saved as a
+standalone 16 x 12 cm png with the title, subtitle and source drawn on the
+image; it is meant to be used without the running text of the report. In the
+folder `figures/en/data/<year>/` the data behind each figure is saved in a wide
+format as an xlsx file, one column per series.
 
 ## The data in brief
 
 The numbers come from the combined dataset of the package: EU and EEA countries
 from Eurostat's national accounts, the rest from the OECD productivity database.
-Chain linked volumes are not additive, so industries are summed through series
+Chain-linked volumes are not additive, so industries are summed through series
 in the previous year's prices and chained again — this is how the business
 sector (NACE B–N excluding real estate) is built as well. For the OECD
 countries, hours worked and persons employed are derived back from value added
@@ -43,15 +50,14 @@ articles are in Finnish). The code of the dataset is `data-raw/data_main.R`.
 #| label: setup
 # library(fiprod)
 
-if (interactive()) devtools::load_all(".") else library(fiprod) 
+if (interactive()) devtools::load_all(".") else library(fiprod)
 
 library(tidyverse)
 library(ggcustom)
 library(pttdatahaku)
 
 
-set_gg(theme_fpb())
-
+set_gg(theme_fpb(base_size = 11))
 
 y_log_breaks <- scales::breaks_pretty(n = 8)
 
@@ -59,13 +65,24 @@ y_log_breaks <- scales::breaks_pretty(n = 8)
 vintage_year <- 2026
 
 # Year of publication. The figures are written to figures/en/<year>/, size
-# 13.5 x 13.5 cm. The other defaults of the saving (size, resolution, format,
+# 13.5 x 8.5 cm. The other defaults of the saving (size, resolution, format,
 # folder) are the defaults of save_fig() and can be changed here in the same
 # call. The folder is not the one the Finnish version writes to, so the two
 # language versions live side by side.
 report_year <- 2026
 
 set_fig_defaults(dir = file.path("figures", "en"), year = report_year)
+
+# Besides save_fig(), every figure is also saved as a standalone png with the
+# title, subtitle and source drawn on the image (save_fig_captioned()). It is
+# meant to be used without the running text of the report, so it is bigger
+# (16 x 12 cm) and goes to a folder of its own, figures/en/captioned/<year>/,
+# so that it does not overwrite the files of save_fig().
+set_fig_captioned_defaults(dir = file.path("figures", "en", "captioned"), year = report_year)
+
+# The data of each figure is also saved in a wide format as an xlsx file in the
+# folder figures/en/data/<year>/ (save_fig_data()).
+set_fig_data_defaults(dir = file.path("figures", "en", "data"), year = report_year)
 
 dat_gdp_main <- load_dat("dat_gdp_main", vintage = vintage_year)
 
@@ -105,7 +122,7 @@ mean_range <- start_year:lubridate::year(max(dat_ulc_comp$time))
 pick <- function(vars_keep, col = "rel", geo_keep = "FI") {
   dat_ulc_comp |>
     filter(
-      geo %in% geo_keep, 
+      geo %in% geo_keep,
       vars %in% vars_keep,
       lubridate::year(time) >= start_year) |>
     select(time, geo, vars, extended, values = all_of(col)) |>
@@ -120,6 +137,142 @@ sub_ind <- paste0("Index, average ", min(mean_range), "–", max(mean_range), " 
 public_period <- 1998:2023
 public_period_lab <- paste0(min(public_period), "–", max(public_period))
 
+# Figures of chapters 3, 4.2, 5 and 6
+#
+# The series come ready calculated from Excel files (data-raw/rap_2026/Luku3.xlsx,
+# Luku4_2.xlsx, Luku5.xlsx and Luku6.xlsx), which are read by the scripts
+# data-raw/read_luku3.R, read_luku4_2.R, read_luku5.R and read_luku6.R. A vintage
+# is not needed, because the Excel files are the files of this report itself and
+# do not update from an interface.
+dat_luku3_2026 <- load_dat("dat_luku3_2026")
+dat_luku4_2_2026 <- load_dat("dat_luku4_2_2026")
+dat_luku5_2026 <- load_dat("dat_luku5_2026")
+dat_luku6_2026 <- load_dat("dat_luku6_2026")
+
+# The names of the series, panels and categories in the Excel files are in
+# Finnish. This translates them, the names of the levels of the factors only,
+# so that the figures and the data files made from them are in English. The
+# names are the Finnish ones as they stand in the files; a name that is not
+# here (country codes, years) is left as it is.
+fi_en <- c(
+  # labour productivity, chapters 3 and 5
+  "Työn tuottavuus" = "Labour productivity",
+  "Reaalipalkat (arvonlisäyksen hinnoin)" = "Real wages (at value added prices)",
+  # service industries
+  "Kauppa" = "Trade",
+  "Kuljetus ja varastointi" = "Transportation and storage",
+  "Informaatio ja viestintä" = "Information and communication",
+  "Rahoitus- ja vakuutustoiminta" = "Financial and insurance activities",
+  "Ammatillinen, tieteellinen ja tekninen toiminta" = "Professional, scientific and technical activities",
+  "Majoitus- ja ravitsemistoiminta" = "Accommodation and food services",
+  "Kiinteistöala" = "Real estate",
+  "Asiantuntijapalvelut" = "Professional services",
+  "Tukipalvelut" = "Support services",
+  # figure 9, industries
+  "Tutkimus- ja kehittämistoiminta (M72)" = "Research and development (M72)",
+  "Lakiasiain- ja laskentatoimen palvelut (M69)" = "Legal and accounting services (M69)",
+  "Tietopalvelut (J63)" = "Information services (J63)",
+  "Ohjelmistojen suunnittelu ja valmistus (J62010)" = "Computer programming (J62010)",
+  "Hotellit (I55101)" = "Hotels (I55101)",
+  "Varastointi ja liikennettä palveleva toiminta (H52)" = "Warehousing and transport support activities (H52)",
+  "Tieliikenteen tavarankuljetus (H49410)" = "Freight transport by road (H49410)",
+  "Moottoriajoneuvojen huolto ja korjaus (G45201)" = "Maintenance and repair of motor vehicles (G45201)",
+  # figure 10, sources of labour productivity growth
+  "Jatkavat yritykset, ei yritysjärjestelyjä" = "Continuing firms, no restructuring",
+  "Yritysostoja tehneet jatkavat yritykset" = "Continuing firms that made acquisitions",
+  "Aito markkinoille tulo ja poistuminen" = "Genuine entry and exit",
+  "Yritysjärjestelyihin liittyvä markkinoille tulo ja poistuminen" = "Entry and exit related to restructuring",
+  "Työvoiman uudelleenkohdentuminen" = "Labour reallocation",
+  "Työn tuottavuus yksityisissä palveluissa" = "Labour productivity in private services",
+  # figure 11, classes of digital intensity
+  "Erittäin matala" = "Very low",
+  "Matala" = "Low",
+  "Korkea" = "High",
+  "Erittäin korkea" = "Very high",
+  # figure 14
+  "Julkisyhteisöt" = "General government",
+  "Yksityinen sektori" = "Private sector",
+  # figure 15
+  "Vanhuuseläkkeet" = "Old-age pensions",
+  "Täydet työkyvyttömyyseläkkeet" = "Full disability pensions",
+  "Osatyökyvyttömyyseläkkeet" = "Partial disability pensions",
+  # figure 16, scenarios and levels of education
+  "Muuttumaton" = "Unchanged",
+  "Perus" = "Baseline",
+  "Optimistinen" = "Optimistic",
+  "Lukio" = "Upper secondary",
+  "Amm. koulutus" = "Vocational",
+  "AMK" = "Polytechnic",
+  "Ylempi kk-aste" = "Master's level",
+  "Tutkija" = "Doctoral level",
+  # figure 17
+  "Palkkatyön kannattavuussuhde" = "Labour profitability ratio",
+  "Palkansaajien tehdyt työtunnit / 20-69 vuotiaat" = "Employees' hours worked / population aged 20–69",
+  # figure 18
+  "Yhteensä" = "Total",
+  "P&K-yritykset" = "Small and medium-sized firms",
+  "Suuret yritykset" = "Large firms",
+  # figure 19
+  "Yrityssektorin taso" = "Business sector level",
+  "Yritysten taso" = "Firm level",
+  # figure 20
+  "Yritysten tasolla" = "At firm level",
+  "\"Luova tuho\"" = "\"Creative destruction\"",
+  "Matala teknologia" = "Low technology",
+  "Keskimatala teknologia" = "Medium-low technology",
+  "Keskikorkea teknologia" = "Medium-high technology",
+  "Korkea teknologia" = "High technology",
+  # figure 21
+  "Divergenssi-komponentti (vasen asteikko)" = "Divergence component (left axis)",
+  "Divergenssi-komponentti, HP-tasoitettu (vasen ast.)" = "Divergence component, HP-filtered (left axis)",
+  "Hajonnan muutos (oikea asteikko)" = "Change in dispersion (right axis)",
+  "Hajonnan muutos, HP-tasoitettu (oikea ast.)" = "Change in dispersion, HP-filtered (right axis)",
+  # chapter 6
+  "Muut maat" = "Other countries",
+  "Suomi" = "Finland",
+  "Eurooppa (BKT-painotettu)" = "Europe (GDP-weighted)",
+  "Painotettu keskiarvo" = "Weighted average",
+  "Alalle tulo" = "Entry",
+  "Alalta poistuminen" = "Exit",
+  "Yhdysvallat" = "United States",
+  "Eurooppa" = "Europe",
+  "Aineelliset investoinnit" = "Tangible investment",
+  "Aineettomat investoinnit" = "Intangible investment"
+)
+
+translate_levels <- function(d) {
+  tr <- function(x) {
+    x <- as.factor(x)
+    lv <- levels(x)
+    levels(x) <- coalesce(unname(fi_en[lv]), lv)
+    x
+  }
+  mutate(d, across(any_of(c("panel", "series", "key")), tr))
+}
+
+# Pick the series of one figure. droplevels() drops the series of the other
+# figures, so that the legend and the colours come only from the series of this
+# figure.
+luku3 <- function(fig) {
+  translate_levels(droplevels(filter(dat_luku3_2026, figure == fig)))
+}
+
+luku4_2 <- function(fig) {
+  translate_levels(droplevels(filter(dat_luku4_2_2026, figure == fig)))
+}
+
+luku5 <- function(fig) {
+  translate_levels(droplevels(filter(dat_luku5_2026, figure == fig)))
+}
+
+luku6 <- function(fig) {
+  translate_levels(droplevels(filter(dat_luku6_2026, figure == fig)))
+}
+
+# The series of figure 17 are indexed to the average of the whole period
+k17_range <- range(lubridate::year(luku5("kuvio17")$time))
+sub_ind_k17 <- paste0("Index, average ", k17_range[1], "–", k17_range[2], " = 100")
+
 ```
 
 # Productivity
@@ -133,18 +286,18 @@ GDP relative to population. In 2020 $, adjusted for purchasing power
 #| label: fig-bkt-per-capita
 
 p <- dat_gdp_main |>
-  filter(time >= "1995-01-01") |> 
+  filter(time >= "1995-01-01") |>
   filter_recode(
     geo = geos,
     measure = c("GDPPOP"),
     activity = c("Total economy" = "_T"),
-    price_base = c("LR"),        # 
+    price_base = c("LR"),        #
     conversion_type = c("PPP")
-  ) |> 
+  ) |>
   # mutate(geo2 = suppressWarnings(fct_relevel(geo, geos, after = Inf))) |>
-  # mutate(geo = fct_other(geo, keep = geos, other_level = "Other")) |> 
-  # filter_recode(geo = geos) |> 
-  select(-unit_measure) |> 
+  # mutate(geo = fct_other(geo, keep = geos, other_level = "Other")) |>
+  # filter_recode(geo = geos) |>
+  select(-unit_measure) |>
   ggplot(aes(time, values, colour = geo, linewidth = geo)) +
   geom_line() +
   scale_colour_manual(values = geos_colour) +
@@ -153,7 +306,12 @@ p <- dat_gdp_main |>
   guides(colour = guide_legend(reverse = TRUE), linewidth = guide_legend(reverse = TRUE)) +
   the_title_blank("xyl")
 
-save_fig(p, "bkt-per-capita")
+save_fig(p, "1_bkt-per-capita")
+save_fig_captioned(p, "1_bkt-per-capita",
+  title = "GDP per capita, difference in levels",
+  subtitle = "GDP relative to population. In 2020 $, adjusted for purchasing power (log scale).",
+  caption = "Source: Eurostat, OECD, Finnish Productivity Board.")
+save_fig_data(p, "1_bkt-per-capita", names_from = "geo")
 
 ```
 
@@ -172,23 +330,23 @@ OECD, Finnish Productivity Board.
 #| label: fig-bkt-per-capita-hajotelma
 
 pdat <- dat_gdp_main |>
-  filter(time >= "1995-01-01") |> 
+  filter(time >= "1995-01-01") |>
   filter_recode(
     geo = geos,
     measure = c("GDP", "HRS", "HRSPOP", "EMP", "POP", "WAP"),
     activity = c("Total economy" = "_T"),
     unit_measure = c("USD_PPP", "H", "H_PS", "PS"),
-    price_base = c("LR", "_Z"),        
+    price_base = c("LR", "_Z"),
     conversion_type = c("PPP", "_Z")
-  ) |> 
-  select(time, geo, measure, values) |> 
-  pivot_wider(names_from = "measure", values_from = "values") |> 
+  ) |>
+  select(time, geo, measure, values) |>
+  pivot_wider(names_from = "measure", values_from = "values") |>
   mutate(
     time = time,
     geo = geo,
     "GDP per hour worked, $" = 1000 * GDP / HRS,
     "Hours worked per capita, h" = HRS / POP,
-    .keep = "none") |> 
+    .keep = "none") |>
   pivot_longer(!c("time", "geo"), names_to = "measure", values_to = "values")
 
 # the scales right in relation to the effect
@@ -212,7 +370,13 @@ p <- ggplot(pdat, aes(time, values, colour = geo, linewidth = geo)) +
   guides(colour = guide_legend(reverse = TRUE), linewidth = guide_legend(reverse = TRUE)) +
   the_title_blank("xyl")
 
-save_fig(p, "bkt-per-capita-hajotelma")
+save_fig(p, "2_bkt-per-capita-hajotelma")
+save_fig_captioned(p, "2_bkt-per-capita-hajotelma",
+  title = "GDP per capita, decomposition",
+  subtitle = paste("Labour productivity and hours worked. GDP per hour worked in 2020 $,",
+                   "adjusted for purchasing power, and hours worked per capita (log scale)."),
+  caption = "Source: Eurostat, OECD, Finnish Productivity Board.")
+save_fig_data(p, "2_bkt-per-capita-hajotelma", names_from = c("measure", "geo"))
 
 ```
 
@@ -221,6 +385,60 @@ labour productivity. The OECD replaces the national accounts hours of ten
 countries with an estimate of its own, which shifts the level of hours and thus
 of productivity but hardly the growth rates; see
 [Työtunnit: Eurostat ja OECD](tyotunnit.qmd).
+
+## GDP per capita, decomposition: persons employed
+
+Labour productivity and persons employed. GDP per person employed in 2020 $,
+adjusted for purchasing power, and persons employed per capita (log scale).
+Source: Eurostat, OECD, Finnish Productivity Board.
+
+```{r, eval=FALSE}
+#| label: fig-bkt-per-capita-hajotelma-tyoll
+
+pdat <- dat_gdp_main |>
+  filter(time >= "1995-01-01") |>
+  filter_recode(
+    geo = geos,
+    measure = c("GDP", "HRS", "HRSPOP", "EMP", "POP", "WAP"),
+    activity = c("Total economy" = "_T"),
+    unit_measure = c("USD_PPP", "H", "H_PS", "PS"),
+    price_base = c("LR", "_Z"),
+    conversion_type = c("PPP", "_Z")
+  ) |>
+  select(time, geo, measure, values) |>
+  pivot_wider(names_from = "measure", values_from = "values") |>
+  mutate(
+    time = time,
+    geo = geo,
+    "GDP per person employed, $" = 1000 * GDP / EMP,
+    "Persons employed per capita" = EMP / POP,
+    .keep = "none") |>
+  pivot_longer(!c("time", "geo"), names_to = "measure", values_to = "values")
+
+# the scales right in relation to the effect
+rng <- pdat |>
+  summarise(lo = min(values, na.rm = TRUE), hi = max(values, na.rm = TRUE), .by = measure) |>
+  mutate(dec = max(log10(hi / lo)),          # the widest span in decades
+         mid = sqrt(lo * hi),                # the geometric midpoint
+         lo  = mid / 10^(dec / 2),
+         hi  = mid * 10^(dec / 2)) |>
+  select(measure, lo, hi) |>
+  pivot_longer(c(lo, hi), values_to = "values") |>
+  mutate(time = min(pdat$time))
+
+p <- ggplot(pdat, aes(time, values, colour = geo, linewidth = geo)) +
+  geom_blank(data = rng, aes(time, values), inherit.aes = FALSE) +
+  facet_wrap(~measure, scales = "free") +
+  scale_y_log10(breaks = y_log_breaks) +
+  geom_line() +
+  scale_colour_manual(values = geos_colour) +
+  scale_linewidth_manual(values = geos_width) +
+  guides(colour = guide_legend(reverse = TRUE), linewidth = guide_legend(reverse = TRUE)) +
+  the_title_blank("xyl")
+
+save_fig(p, "bkt-per-capita-hajotelma_tyoll")
+
+```
 
 ## Labour productivity growth in the business sector
 
@@ -231,17 +449,18 @@ Labour productivity, value added per hour worked. Business sector, index
 #| label: fig-tuottavuus-yrityssektori
 
 p <- dat_gva_ind_comb |>
-  filter(time >= "1995-01-01") |> 
+  select(-source) |>
+  filter(time >= "1995-01-01") |>
   filter_recode(
     measure = c("GVAHRS"),
     activity = c("Business sector" = "BTNXL"),
     vars = c("fp_2020_lc")
-  ) |> 
-  mutate(values = rebase(values, time, baseyear = 2007), .by = where(is.factor)) |> 
-  # filter(geo != "DK") |> 
+  ) |>
+  mutate(values = rebase(values, time, baseyear = 2007), .by = where(is.factor)) |>
+  # filter(geo != "DK") |>
   filter_recode(
     geo = geos
-  ) |> 
+  ) |>
 
   ggplot(aes(time, values, colour = geo, linewidth = geo)) +
   # facet_wrap(~ activity, nrow = 1) +
@@ -252,7 +471,12 @@ p <- dat_gva_ind_comb |>
   guides(colour = guide_legend(reverse = TRUE), linewidth = guide_legend(reverse = TRUE)) +
   the_title_blank("xyl")
 
-save_fig(p, "tuottavuus-yrityssektori")
+save_fig(p, "3_tuottavuus-yrityssektori")
+save_fig_captioned(p, "3_tuottavuus-yrityssektori",
+  title = "Labour productivity in the business sector",
+  subtitle = "Value added per hour worked. Business sector, index 2007 = 100, log scale",
+  caption = "Source: Eurostat, OECD, Finnish Productivity Board.")
+save_fig_data(p, "3_tuottavuus-yrityssektori", names_from = "geo")
 
 ```
 
@@ -260,28 +484,29 @@ The business sector is NACE B–N excluding real estate (L). For the Eurostat
 countries it is summed from the A\*10 industries through series in the previous
 year's prices and chained again; for the OECD countries it comes ready from the
 database (`BTNXL`). The series are in national currency, so the figure shows
-growth, not the difference in levels.
+growth, not differences in levels.
 
 ## Labour productivity growth in industry and in services
 
-Labour productivity by industry, value added per hour worked. Index 2007 = 100
-(log scale). Source: Eurostat, OECD, Finnish Productivity Board.
+Labour productivity by industry, value added per hour worked. Index
+2007 = 100 (log scale). Source: Eurostat, OECD, Finnish Productivity Board.
 
 ```{r}
 #| label: fig-tuottavuus-toimialat
 
 p <- dat_gva_ind_comb|>
-  filter(time >= "2000-01-01") |> 
+  select(-source) |>
+  filter(time >= "2000-01-01") |>
   filter_recode(
     measure = c("GVAHRS"),
-    activity = c("Industry" = "BTE", "Construction" = "F", "Private services" = "GTNXL"),
+    activity = c("Industry" = "BTE", "Construction" = "F","Private services" = "GTNXL"),
     vars = c("fp_2020_lc")
-  ) |> 
-  mutate(values = rebase(values, time, baseyear = 2007), .by = where(is.factor)) |> 
+  ) |>
+  mutate(values = rebase(values, time, baseyear = 2007), .by = where(is.factor)) |>
   filter(geo != "DK") |>
   filter_recode(
     geo = geos
-  ) |> 
+  ) |>
 
   ggplot(aes(time, values, colour = geo, linewidth = geo)) +
   scale_y_log10(limits = c(60, 150), breaks = y_log_breaks) +
@@ -292,13 +517,18 @@ p <- dat_gva_ind_comb|>
   guides(colour = guide_legend(reverse = TRUE), linewidth = guide_legend(reverse = TRUE)) +
   the_title_blank("xyl")
 
-save_fig(p, "tuottavuus-toimialat")
+save_fig(p, "4_tuottavuus-toimialat")
+save_fig_captioned(p, "4_tuottavuus-toimialat",
+  title = "Labour productivity growth in industry and in services",
+  subtitle = "Labour productivity by industry, value added per hour worked. Index 2007 = 100 (log scale).",
+  caption = "Source: Eurostat, OECD, Finnish Productivity Board.")
+save_fig_data(p, "4_tuottavuus-toimialat", names_from = c("activity", "geo"))
 
 ```
 
 
-In the OECD industry data, industry (B–E) covers manufacturing only, which
-concerns the countries that come from the OECD; see
+In the OECD's industry data, industry (B–E) covers manufacturing only, which
+applies to the countries that come from the OECD; see
 [Talouskasvu ja tuottavuus](main.qmd).
 
 ## The level of productivity in services
@@ -310,7 +540,14 @@ Board.
 ```{r}
 #| label: fig-tuottavuustaso-palvelut
 
-p <- dat_gva_ind_comb|> 
+# The figure as it is in the Word version of the report: France is left out, so
+# the countries and their colours are those of geos_s1, and the text is of the
+# size 12 (theme_fpb()'s default) instead of the 11 of the rest of the figures.
+geos_s1 <- geos[geos != "FR"]
+geos_s1_width <- set_names(if_else(geos_s1 %in% c("FI"), 2, 1.3), names(geos_s1))
+geos_s1_colour <- set_names(c("grey80", rev(ggcustom_pal(length(geos_s1) - 1, "fpb"))), names(geos_s1))
+
+p <- dat_gva_ind_comb |> 
   filter(time >= "1995-01-01") |> 
   filter_recode(
     measure = c("GVAHRS"),
@@ -319,26 +556,32 @@ p <- dat_gva_ind_comb|>
   ) |> 
   # mutate(values = rebase(values, time, baseyear = 2007), .by = where(is.factor)) |> 
   filter_recode(
-    geo = geos
+    geo = geos_s1
   ) |> 
   ggplot(aes(time, values, colour = geo, linewidth = geo)) +
+  theme_fpb(base_size = 12) +
   scale_y_log10(limits = c(50, 150), breaks = y_log_breaks) +
   geom_line() +
-  scale_colour_manual(values = geos_colour) +
-  scale_linewidth_manual(values = geos_width) +
+  scale_colour_manual(values = geos_s1_colour) +
+  scale_linewidth_manual(values = geos_s1_width) +
   scale_y_log10(breaks = y_log_breaks) +
   guides(colour = guide_legend(reverse = TRUE), linewidth = guide_legend(reverse = TRUE)) +
   the_title_blank("xyl") 
 
-save_fig(p, "tuottavuustaso-palvelut")
+save_fig(p, "s1_tuottavuustaso-palvelut")
+save_fig_captioned(p, "s1_tuottavuustaso-palvelut",
+  title = "The level of productivity in services",
+  subtitle = "Value added per hour worked, in 2017 $ adjusted for purchasing power, log scale",
+  caption = "Source: Eurostat, OECD, Finnish Productivity Board.")
+save_fig_data(p, "s1_tuottavuustaso-palvelut", names_from = "geo")
 
 ```
 
-# Cost competitiveness
+# Developments in cost competitiveness
 
 ## Unit cost indicators
 
-Finland's relative unit labour cost on different definitions. `r sub_ind`.
+Finland's relative unit labour costs with different definitions. `r sub_ind`.
 Source: Eurostat, Finnish Productivity Board.
 
 ```{r}
@@ -356,16 +599,21 @@ p <- pick(c("Nominal, national currency" = "nulc_aper",
   guides(colour = guide_legend(nrow = 2)) +
   labs(y = NULL)
 
-save_fig(p, "ulc-maaritelmat")
+save_fig(p, "5_ulc-maaritelmat")
+save_fig_captioned(p, "5_ulc-maaritelmat",
+  title = "Unit cost indicators",
+  subtitle = sub_ind,
+  caption = "Source: Eurostat, OECD, Finnish Productivity Board.")
+save_fig_data(p, "5_ulc-maaritelmat", names_from = "vars")
+
 
 ```
 
-The ratio is computed against 17 peer countries, except the terms of trade
-adjusted one, which is against the 15 Eurostat countries only: the OECD
-productivity database holds neither exports nor imports. The last years of the
-United States and Japan are extended with the growth rate of the OECD quarterly
-series, so the final year rests in part on extended data (the `extended`
-column).
+The ratio is calculated against 17 peer countries, except for the terms of trade
+adjusted one, which is only among the 15 Eurostat countries: the OECD
+productivity database has neither exports nor imports. The last years of the USA
+and Japan have been extended with the growth rates of the OECD's quarterly
+series, so the last year rests partly on extended data (the `extended` column).
 
 ## Decomposition of the ULC
 
@@ -386,24 +634,261 @@ p <- pick(c("Productivity" = "lp_ind",
   the_legend_bot() +
   labs(y = NULL)
 
-save_fig(p, "ulc-hajotelma")
+save_fig(p, "6_ulc-hajotelma")
+save_fig_captioned(p, "6_ulc-hajotelma",
+  title = "Decomposition of the ULC",
+  subtitle = paste0("The components of the relative unit labour cost. ", sub_ind, "."),
+  caption = "Source: Eurostat, Finnish Productivity Board.")
+save_fig_data(p, "6_ulc-hajotelma", names_from = "vars")
 
 ```
 
-The exchange rate index is national currency per euro, so a rise in it means
-the currency weakening. In the figure it is turned around (100² / index), so
-that a rise is the currency strengthening and therefore the unit labour cost
-rising in the common currency. A rise in compensation raises the unit labour
-cost, a rise in productivity lowers it.
+The exchange rate index is national currency per euro, so a rise means that the
+currency weakens. In the figure it is turned upside down (100² / index), so that
+a rise is a strengthening of the currency and thus a rise in the unit labour
+cost in a common currency. A rise in compensation per employee raises the unit
+labour cost, a rise in productivity lowers it.
+
+
+
+# Figures of chapter 3
+
+As the series of chapter 5, the series of chapter 3 come ready calculated from
+the Excel file `data-raw/rap_2026/Luku3.xlsx`, which has one sheet per figure
+and on every sheet also a model figure. The sheets are read into one table by
+the script `data-raw/read_luku3.R`, which has to be run before this document is
+rendered.
+
+From the model figures we have taken which series are in the figure, the names
+of the series and of the panels and the titles of the axes of figure 2. The
+titles and the notes are the sheets' own, with the hyphenation removed.
+
+## Labour productivity in the private service sector
+
+Labour productivity in the private service sector in Finland in 2000–2024.
+EUR 1,000 per full-time employee, in 2015 prices. Source: Statistics Finland;
+own calculations.
+
+```{r}
+#| label: fig-palvelut-tuottavuus
+
+p <- luku3("kuvio1") |>
+  ggplot(aes(time, values)) +
+  geom_line() +
+  expand_limits(y = 50) +
+  scale_y_continuous(n.breaks = 6) +
+  the_title_blank("xyl")
+
+save_fig(p, "7_palvelut-tuottavuus")
+save_fig_captioned(p, "7_palvelut-tuottavuus",
+  title = "Labour productivity in the private service sector",
+  subtitle = paste("Labour productivity in the private service sector in Finland in 2000–2024.",
+                   "EUR 1,000 per full-time employee, in 2015 prices."),
+  caption = "Source: Statistics Finland; own calculations.")
+save_fig_data(p, "7_palvelut-tuottavuus")
+
+```
+
+The private service sector here covers the industries 45–63, 68–74 and 77–82 of
+the TOL 2008 (the Finnish version of NACE Rev. 2), and labour productivity is
+measured as value added in 2015 volumes per person-year (the note on the sheet).
+The scale starts from zero as in the model figure, because the figure shows a
+level.
+
+## Productivity and capital intensity in service industries
+
+Labour productivity and capital stock relative to hours worked in five service
+industries in the EU countries and Norway. Source: Kaitila, Ville, "Service
+Industries, Capital Intensity, and Labour Productivity", ETLA Working Papers
+No 127.
+
+```{r}
+#| label: fig-palvelut-paaomaintensiteetti
+
+
+# The levels of the industries differ greatly, so every panel has a scale of its
+# own as in the model, where they are five separate figures.
+p <- luku3("kuvio2") |>
+  pivot_wider(names_from = series, values_from = values) |>
+  ggplot(aes(caplab_total_eur, labprod_eur)) +
+  facet_wrap(~ panel, scales = "free", labeller = label_wrap_gen(width = 25), ncol = 2) +
+  expand_limits(y = 0, x = 0) +
+  geom_point(size = 1.5, colour = "grey30") +
+  geom_smooth(method = lm, se = FALSE, linewidth = 0.7, colour = "grey70") +
+  geom_text(
+    data = ~ filter(.x, key %in% geos),
+    aes(label = key), size = 3, hjust = 1.5) +
+  geom_point(
+    data = ~ filter(.x, key %in% geos),
+    aes(label = key), size = 1.5, colour = fpb_pal(1)[1]) +
+  geom_text(
+    data = ~ filter(.x, key == "FI"),
+    aes(label = key), size = 3, hjust = 1.5, colour = fpb_pal(2)[2]) +
+  geom_point(
+    data = ~ filter(.x, , key == "FI"),
+    aes(label = key), size = 1.5, colour = fpb_pal(2)[2]) +
+  labs(x = "Capital stock relative to hours worked", y = "Labour productivity")
+
+save_fig(p, "8_palvelut-paaomaintensiteetti", height = 18)
+save_fig_captioned(p, "8_palvelut-paaomaintensiteetti",
+  title = "Productivity and capital intensity in service industries",
+  subtitle = paste("Labour productivity and capital stock relative to hours worked in five",
+                   "service industries in the EU countries and Norway."),
+  caption = paste("Source: Kaitila, Ville, \"Service Industries, Capital Intensity, and Labour",
+                  "Productivity\", ETLA Working Papers No 127."))
+# the data is already in a wide format (pivot_wider() before the ggplot() call)
+save_fig_data(p, "8_palvelut-paaomaintensiteetti")
+
+```
+
+The figure is taller than the model figures (18 cm), because there are five
+panels. Luxembourg is missing from all industries and Ireland from information
+and communication, so they are not in the figure.
+
+## The ratio of labour costs to the marginal product of labour
+
+The ratio of labour costs to the estimated marginal product of labour by
+industry in 2000–2022. Ratio. Source: own calculations.
+
+```{r}
+#| label: fig-tyovoimakustannukset-rajatuotto
+
+p <- luku3("kuvio3") |>
+  ggplot(aes(values, key)) +
+  geom_col() +
+  expand_limits(x = 1) +
+  theme(axis.text.y = element_text(size = 9)) +
+  the_title_blank("xyl")
+
+save_fig(p, "9_tyovoimakustannukset-rajatuotto")
+save_fig_captioned(p, "9_tyovoimakustannukset-rajatuotto",
+  title = "The ratio of labour costs to the marginal product of labour",
+  subtitle = paste("The ratio of labour costs to the estimated marginal product of labour by industry",
+                   "in 2000–2022. Ratio."),
+  caption = "Source: own calculations.")
+save_fig_data(p, "9_tyovoimakustannukset-rajatuotto")
+
+```
+
+The industries are in the order of the sheet, which is also the order of the
+model figure. The scale reaches one as in the model figure: at one the labour
+cost equals the estimated marginal product of labour.
+
+## Sources of labour productivity growth
+
+Sources of labour productivity growth in private services in Finland.
+Contribution to labour productivity growth, % per year. Source: own
+calculations.
+
+```{r}
+#| label: fig-tuottavuuskasvun-lahteet
+
+# The bars are the parts of the decomposition and the dot is their sum, that is
+# the productivity growth of the whole sector.
+k4_yht <- "Labour productivity in private services"
+
+pdat <- luku3("kuvio4") |>
+  mutate(series = stringr::str_wrap(series, 50))
+
+lvl <- levels(as_factor(pdat$series))      # all 6 levels, k4_yht last
+pal <- c(fpb_pal(5), NA)          # or: c(scales::hue_pal()(5), NA)
+
+p <- pdat |>
+  filter(series != k4_yht) |>
+  ggplot(aes(key, values, fill = series)) +
+  geom_hline(yintercept = 0, linewidth = 0.3) +
+  geom_col() +
+  geom_point(data = filter(pdat, series == k4_yht),
+             aes(key, values, colour = series), shape = 16,
+             inherit.aes = FALSE) +
+  scale_fill_manual(  values = setNames(pal, lvl),                       limits = lvl, name = NULL) +
+  scale_colour_manual(values = setNames(c(rep(NA, 5), "grey10"), lvl),   limits = lvl, name = NULL) +
+  the_title_blank("xyl") +
+  the_legend_bot() +
+  guides(fill   = guide_legend(ncol = 2),
+         colour = guide_legend(ncol = 2)) +
+  theme(legend.text = element_text(size = 8))
+
+save_fig(p, "10_tuottavuuskasvun-lahteet", height = 11)
+save_fig_captioned(p, "10_tuottavuuskasvun-lahteet",
+  title = "Sources of labour productivity growth",
+  subtitle = paste("Sources of labour productivity growth in private services in Finland.",
+                   "Contribution to labour productivity growth, % per year."),
+  caption = "Source: own calculations.")
+save_fig_data(p, "10_tuottavuuskasvun-lahteet", names_from = "series")
+
+```
+
+
+```{r}
+lvl <- levels(factor(pdat$series))      # all 6 levels, k4_yht last
+pal <- c(fpb_pal(5), NA)          # or: c(scales::hue_pal()(5), NA)
+
+p <- pdat |>
+  filter(series != k4_yht) |>
+  ggplot(aes(key, values, fill = series)) +
+  geom_hline(yintercept = 0, linewidth = 0.3) +
+  geom_col() +
+  geom_point(data = filter(pdat, series == k4_yht),
+             aes(key, values, colour = series), shape = 16,
+             inherit.aes = FALSE) +
+  scale_fill_manual(  values = setNames(pal, lvl),                       limits = lvl, name = NULL) +
+  scale_colour_manual(values = setNames(c(rep(NA, 5), "grey10"), lvl),   limits = lvl, name = NULL) +
+  the_title_blank("xyl") +
+  the_legend_bot() +
+  guides(fill   = guide_legend(ncol = 2),
+         colour = guide_legend(ncol = 2))
+```
+
+
+The parts add up to the value of the dot. The order of the bars is the order of
+the columns of the sheet; in the model figure the last two are the other way
+round.
+
+## Classes of digital intensity
+
+The distribution of firms into classes of digital intensity in the private
+service industries. Share of firms, %. Source: own calculations.
+
+```{r}
+#| label: fig-digi-intensiteetti
+
+p <- luku3("kuvio11") |>
+  ggplot(aes(key, values, fill = series)) +
+  geom_col(position = "dodge", width = 0.7) +
+  the_title_blank("xyl") +
+  the_legend_bot() +
+  guides(fill = guide_legend(nrow = 4)) +
+  theme(legend.text = element_text(size = 8))
+
+save_fig(p, "11_digi-intensiteetti", height = 10)
+save_fig_captioned(p, "11_digi-intensiteetti",
+  title = "Classes of digital intensity",
+  subtitle = paste("The distribution of firms into classes of digital intensity in the private",
+                   "service industries. Share of firms, %."),
+  caption = "Source: own calculations.")
+save_fig_data(p, "11_digi-intensiteetti", names_from = "series")
+
+```
+
+According to the note on the sheet, the industries are classes of the TOL 2008:
+trade (G45–47), transportation and storage (H49–53), accommodation and food
+service activities (I55–56), information and communication (J58–63), real estate
+activities (L68), professional services (M69–74 excl. 75), administrative and
+support services (N77–82) and repair of computers and communication equipment
+(S951). The sheet also has the shares of the classes for each year in 2015–2021,
+which the model figure does not use.
+
+# Figures of chapter 4
 
 # Productivity in the public sector
 
-The public sector is three industries taken together here: public
-administration, education, and health and social work (NACE O–Q). They also
-contain private sector output, health services especially, because no
-comprehensive cross country data is available on a sector breakdown alone. The
-industries separately, and a version based on the OECD data alone, are in
-[Julkisen sektorin tuottavuus](public.qmd) (in Finnish).
+The public sector here is three industries together: public administration,
+education, and human health and social work activities (NACE O–Q). They also
+include, especially health services, production by the private sector, because
+there is no comprehensive data for a country comparison with a split by sector
+alone. The industries separately and a version based on the OECD data alone are
+in the article [Julkisen sektorin tuottavuus](public.qmd) (in Finnish).
 
 ## Productivity in the public sector
 
@@ -414,18 +899,19 @@ Finnish Productivity Board.
 ```{r}
 #| label: fig-tuottavuus-julkinen
 
+
 p <- dat_gva_ind_comb |>
-  filter(time >= "1980-01-01") |> 
+  filter(time >= "1980-01-01") |>
   filter_recode(
     measure = c("GVAHRS"),
     activity = c("Public sector" = "OTQ"),
     vars = c("fp_2020_ppp17")
-  ) |> 
-  mutate(values = rebase(values, time, baseyear = 2000), .by = where(is.factor)) |> 
-  filter(geo != "DK") |> 
+  ) |>
+  mutate(values = rebase(values, time, baseyear = 2000), .by = where(is.factor)) |>
+  filter(geo != "DK") |>
   filter_recode(
     geo = geos
-  ) |> 
+  ) |>
   ggplot(aes(time, values, colour = geo, linewidth = geo)) +
   geom_line() +
   scale_colour_manual(values = geos_colour) +
@@ -433,92 +919,728 @@ p <- dat_gva_ind_comb |>
   guides(colour = guide_legend(reverse = TRUE), linewidth = guide_legend(reverse = TRUE)) +
   the_title_blank("xyl")
 
-save_fig(p, "tuottavuus-julkinen")
+save_fig(p, "12_tuottavuus-julkinen")
+save_fig_captioned(p, "12_tuottavuus-julkinen",
+  title = "Productivity in the public sector",
+  subtitle = paste("Labour productivity in the public sector, value added per hour worked in 2020 $,",
+                   "adjusted for purchasing power. Index, 2000 = 100."),
+  caption = "Source: Eurostat, OECD, Finnish Productivity Board.")
+save_fig_data(p, "12_tuottavuus-julkinen", names_from = "geo")
 
 ```
 
-Eurostat's data is retrieved at the A\*10 level of NACE, where public
-administration, education, and health and social work are one industry (`OTQ`);
-for the OECD countries the same aggregate is summed from the industries. The
-purchasing power adjustment is industry specific and based on the 2017 price
-level, so the figure compares growth, not levels.
+The Eurostat data is retrieved at the A\*10 level of NACE, where public
+administration, education, and human health and social work activities are one
+industry (`OTQ`); for the OECD countries the same whole is summed from
+industries. The adjustment for purchasing power is made by industry and is
+based on the price level of 2017, so the figure compares growth, not levels.
 
 ## Productivity growth with and without the public sector
 
-Average annual growth of labour productivity in the total economy, in the public
+Average annual growth of labour productivity in the whole economy, in the public
 sector and excluding the public sector, and the difference between the growth
-rates of the total economy and of the economy excluding the public sector.
+rates of the whole economy and of the economy excluding the public sector.
 Average over `r public_period_lab`, %. Source: Eurostat, OECD, Finnish
 Productivity Board.
 
 ```{r}
 #| label: fig-tuottavuuskasvu-julkinen
 
-# Chain linked volumes are not additive, so the public sector is subtracted from
+# Chain-linked volumes are not additive, so the public sector is subtracted from
 # the total economy through series in the previous year's prices and the
 # difference is chained again. Hours worked are additive and are subtracted as
 # they are.
-pdat <- dat_gva_ind_comb |> 
-  filter(time >= "1995-01-01") |> 
+pdat <- dat_gva_ind_comb |>
+  filter(time >= "1995-01-01") |>
   filter_recode(
     measure = c("GVA", "HRS"),
     activity = c("TOT" = "_T", "OTQ"),
     vars = c("cp", "fp_2020_lc")
-  ) |> 
-  pivot_wider(names_from = c(measure, vars), values_from = values, names_sep = "__") |> 
-  select(-HRS__fp_2020_lc) |> 
-  mutate(GVA__pp = prev_year_prices(GVA__cp, GVA__fp_2020_lc, time), .by = c(geo, activity)) |> 
+  ) |>
+  pivot_wider(names_from = c(measure, vars), values_from = values, names_sep = "__") |>
+  select(-HRS__fp_2020_lc) |>
+  mutate(GVA__pp = prev_year_prices(GVA__cp, GVA__fp_2020_lc, time), .by = c(geo, activity)) |>
   pivot_wider(
     names_from = activity,
     values_from = where(is.numeric),
     names_sep = "___"
-  ) |> 
+  ) |>
   mutate(
     GVA__cp___TOTex = GVA__cp___TOT - GVA__cp___OTQ,
     HRS__cp___TOTex = HRS__cp___TOT - HRS__cp___OTQ,
     GVA__pp___TOTex = GVA__pp___TOT - GVA__pp___OTQ
-  ) |> 
-  mutate(GVA__fp_2020_lc___TOTex = fixed_prices(GVA__cp___TOTex, GVA__pp___TOTex, time, 2020), .by = geo) |> 
+  ) |>
+  mutate(GVA__fp_2020_lc___TOTex = fixed_prices(GVA__cp___TOTex, GVA__pp___TOTex, time, 2020), .by = geo) |>
   pivot_longer(cols = where(is.numeric), names_to = c("vars", "activity"), names_sep = "___",
-               values_to = "values", names_transform = as_factor) |> 
-  pivot_wider(names_from = "vars", values_from = "values") |> 
-  mutate(GVAHRS__fp_2020_lc = GVA__fp_2020_lc / HRS__cp) |> 
+               values_to = "values", names_transform = as_factor) |>
+  pivot_wider(names_from = "vars", values_from = "values") |>
+  mutate(GVAHRS__fp_2020_lc = GVA__fp_2020_lc / HRS__cp) |>
   pivot_longer(cols = where(is.numeric), names_to = c("measure", "vars"), names_sep = "__",
                values_to = "values", names_transform = as_factor)
 
-p <- pdat |> 
+p <- pdat |>
   filter_recode(
     measure = "GVAHRS",
     vars = "fp_2020_lc",
     geo = geos
-  ) |> 
-  mutate(values = pc(values, 1, time), .by = c(geo, activity)) |> 
-  pivot_wider(names_from = activity, values_from = values) |> 
-  mutate(diff = TOT - TOTex) |> 
+  ) |>
+  mutate(values = pc(values, 1, time), .by = c(geo, activity)) |>
+  pivot_wider(names_from = activity, values_from = values) |>
+  mutate(diff = TOT - TOTex) |>
   pivot_longer(cols = where(is.numeric), names_to = "activity", values_to = "values",
-               names_transform = as_factor) |> 
+               names_transform = as_factor) |>
   filter_recode(
     activity =
       c("Total economy" = "TOT",
         "Public sector" = "OTQ",
         "Excluding public sector" = "TOTex",
         "Difference" = "diff")
-  ) |> 
-  filter(year(time) %in% public_period) |> 
-  summarise(values = mean(values), .by = c(geo, activity)) |> 
-  mutate(geo = fct_reorder(geo, values, .fun = max)) |> 
+  ) |>
+  filter(year(time) %in% public_period) |>
+  summarise(values = mean(values), .by = c(geo, activity)) |>
+  mutate(geo = fct_reorder(geo, values, .fun = max)) |>
   ggplot(aes(geo, values, fill = activity)) +
   geom_col(position = "dodge") +
+  scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
   the_title_blank("xyl")
 
-save_fig(p, "tuottavuuskasvu-julkinen")
+save_fig(p, "13_tuottavuuskasvu-julkinen")
+save_fig_captioned(p, "13_tuottavuuskasvu-julkinen",
+  title = "Productivity growth with and without the public sector",
+  subtitle = paste0(
+    "Average annual growth of labour productivity in the whole economy, in the public ",
+    "sector and excluding the public sector, and the difference between the growth ",
+    "rates of the whole economy and of the economy excluding the public sector. ",
+    "Average over ", public_period_lab, ", %."),
+  caption = "Source: Eurostat, OECD, Finnish Productivity Board.")
+save_fig_data(p, "13_tuottavuuskasvu-julkinen", names_from = "activity")
 
 ```
 
 The difference tells how much the public sector has slowed down (a negative
-number) or sped up the productivity growth of the total economy, compared with
-an economy from which the public sector has been removed. The average is taken
-without any correction for missing years, so a country drops out of the figure
-if even one year of the period is missing. Value added excluding the public
-sector is chained again to 2020 prices in national currency; see
+number) or sped up the productivity growth of the whole economy compared with an
+economy from which the public sector has been removed. The average is
+calculated without any correction for missing years, so a country is left out of
+the figure if even one year of the period is missing. Value added excluding the
+public sector has been chained again to 2020 prices in national currency; see
 [Talouskasvu ja tuottavuus](main.qmd).
+
+## Persons employed in general government and in the private sector
+
+The number of persons employed in general government and in the private sector.
+1,000 persons. Source: Statistics Finland, national accounts.
+
+Series of chapter 4.2 come ready calculated, as those of the other chapters,
+from the Excel file `data-raw/rap_2026/Luku4_2.xlsx`, which has one sheet per
+figure. The sheets are read by the script `data-raw/read_luku4_2.R`, which has
+to be run before this document is rendered.
+
+The model figures of figures 14 and 15 are on the sheets. Figure 16 has no model
+figure; its title, subtitle, legends and sources are text in column L of the
+sheet.
+
+```{r}
+#| label: fig-tyolliset-sektoreittain
+
+# General government is at the bottom of the stack in the model figure, so the
+# stack is turned round: ggplot2 stacks the first level on top by default
+p <- luku4_2("kuvio14") |>
+  ggplot(aes(time, values, fill = series)) +
+  geom_col(position = position_stack(reverse = TRUE)) +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "14_tyolliset-sektoreittain")
+save_fig_captioned(p, "14_tyolliset-sektoreittain",
+  title = "Persons employed in general government and in the private sector",
+  subtitle = "The number of persons employed in general government and in the private sector. 1,000 persons.",
+  caption = "Source: Statistics Finland, national accounts.")
+save_fig_data(p, "14_tyolliset-sektoreittain", names_from = "series")
+
+```
+
+The last two years are preliminary. The sheet also has households and non-profit
+institutions serving households, which are not in the model figure.
+
+## New pensions
+
+New pensions by type of pension in 2025–2044. Cumulative number. Source: Keva
+(2025).
+
+```{r}
+#| label: fig-alkavat-elakkeet
+
+p <- luku4_2("kuvio15") |>
+  ggplot(aes(time, values, fill = series)) +
+  geom_col(position = position_stack(reverse = TRUE)) +
+  scale_y_continuous(labels = scales::label_number(big.mark = ",")) +
+  the_title_blank("xyl") +
+  the_legend_bot() +
+  guides(fill = guide_legend(nrow = 2))
+
+save_fig(p, "15_alkavat-elakkeet")
+save_fig_captioned(p, "15_alkavat-elakkeet",
+  title = "New pensions",
+  subtitle = "New pensions by type of pension in 2025–2044. Cumulative number.",
+  caption = "Source: Keva (2025).")
+save_fig_data(p, "15_alkavat-elakkeet", names_from = "series")
+
+```
+
+## Human capital stock
+
+The development of the human capital stock in three forecast scenarios in
+2024–2075. EUR million, volume, reference year 2015. Sources: Statistics
+Finland, calculations by Arto Kokkinen (National Audit Office of Finland) and
+Pirkka Jalasjoki (Bank of Finland).
+
+```{r}
+#| label: fig-inhimillinen-paaomakanta
+
+# The legend texts of the sheet are the name of the scenario and its definition,
+# separated by a colon. The legend has the name and the definitions are below
+# the figure, because the whole texts would take half of the height of the
+# figure.
+
+lines <- c("Unchanged", "Baseline", "Optimistic")
+
+p <- luku4_2("kuvio16") |>
+  mutate(values = values / 1000) |>
+  mutate(vars = fct_rev(as_factor(series))) %>%{
+  ggplot(droplevels(filter(., !(vars %in% lines))), aes(time, values, fill = vars)) +
+  geom_area() +
+  geom_line(data = (filter(., vars %in% lines)), aes(time, values, colour = vars, fill = NULL)) +
+  the_title_blank("xyl") +
+      the_legend_bot() +
+  scale_colour_manual(values = rev(c("grey25", "grey50", "grey75"))) +
+  geom_hline(yintercept = 0) +
+      guides(fill = guide_legend(override.aes = list(colour = NA), nrow = 3), colour = guide_legend(nrow = 3)) +
+      theme(panel.grid.major.x = element_blank())}
+
+save_fig(p, "16_inhimillinen-paaomakanta")
+save_fig_captioned(p, "16_inhimillinen-paaomakanta",
+  title = "Human capital stock",
+  subtitle = paste("The development of the human capital stock in three forecast scenarios in 2024–2075.",
+                   "EUR million, volume, reference year 2015."),
+  caption = "Sources: Statistics Finland, calculations by Arto Kokkinen (National Audit Office of Finland) and Pirkka Jalasjoki (Bank of Finland).")
+# p$data is only the part of the stacked scenarios (the line series are the data
+# of the layer of their own geom_line()), so only they are saved in the wide
+# file
+save_fig_data(p, "16_inhimillinen-paaomakanta", names_from = "vars")
+
+```
+
+In the baseline scenario 50 % of those aged 25–34 have a tertiary degree by
+2035 and in the optimistic scenario 70 % by 2040. The scenarios differ from each
+other only from 2024, so before that the lines overlap. The sheet also has the
+capital stock of the baseline scenario by level of education, which the figure
+does not use. Description of the method: Kokkinen, A., Obstbaum, M., and
+Mäki-Fränti P. (2021). Bank of Finland's Long-Run Forecast Framework with Human
+Capital. BoF Economics Review 10-2021.
+
+# Figures of chapter 5
+
+The series of chapter 5 do not come from statistical interfaces but ready
+calculated from the Excel file `data-raw/rap_2026/Luku5.xlsx`, which has one
+sheet per figure and on every sheet also a model figure. The sheets are read
+into one long table by the script `data-raw/read_luku5.R`, which has to be run
+before this document is rendered.
+
+From the model figures we have taken which series are in the figure, the legends
+of the series and the titles of the panels of figure 20. Otherwise the figures
+are in the same style as the other figures of the report: the title, subtitle
+and source are text above the figure and every figure is also saved as a png and
+a pdf.
+
+## Labour productivity and real wages
+
+Labour productivity and real wages at value added prices. Index, 2000 = 100,
+quarterly. Source: Finnish Productivity Board's own calculations.
+
+```{r}
+#| label: fig-tuottavuus-reaalipalkat
+
+p <- luku5("kuvio16") |>
+  ggplot(aes(time, values, colour = series)) +
+  geom_line() +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "17_tuottavuus-reaalipalkat")
+save_fig_captioned(p, "17_tuottavuus-reaalipalkat",
+  title = "Labour productivity and real wages",
+  subtitle = paste("Labour productivity and real wages at value added prices. Index, 2000 = 100,",
+                   "quarterly."),
+  caption = "Source: Finnish Productivity Board's own calculations.")
+save_fig_data(p, "17_tuottavuus-reaalipalkat", names_from = "series")
+
+```
+
+## Profitability of wage labour and hours worked
+
+The labour profitability ratio and the hours worked by employees relative to the
+population aged 20–69. `r sub_ind_k17`. Source: National accounts and the AMECO
+database.
+
+```{r}
+#| label: fig-kannattavuus-tyotunnit
+
+p <- luku5("kuvio17") |>
+  ggplot(aes(time, values, colour = series)) +
+  geom_hline(yintercept = 100, linewidth = 0.3) +
+  geom_line() +
+  the_title_blank("xyl") +
+  guides(colour = guide_legend(nrow = 2)) +
+  the_legend_bot()
+
+save_fig(p, "18_kannattavuus-tyotunnit")
+save_fig_captioned(p, "18_kannattavuus-tyotunnit",
+  title = "Profitability of wage labour and hours worked",
+  subtitle = paste0(
+    "The labour profitability ratio and the hours worked by employees relative to ",
+    "the population aged 20–69. ", sub_ind_k17, "."),
+  caption = "Source: National accounts and the AMECO database.")
+save_fig_data(p, "18_kannattavuus-tyotunnit", names_from = "series")
+
+```
+
+## Research and development inputs by firm size
+
+Firms' inputs into research and development, measured in person-years of
+research and development personnel. Index, 2004 = 100. Source: National
+accounts.
+
+```{r}
+#| label: fig-tk-panostukset
+
+p <- luku5("kuvio18") |>
+  ggplot(aes(time, values, colour = series)) +
+  geom_hline(yintercept = 100, linewidth = 0.3) +
+  geom_line() +
+  scale_y_continuous(n.breaks = 8) +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "19_tk-panostukset")
+save_fig_captioned(p, "19_tk-panostukset",
+  title = "R&D inputs by firm size",
+  subtitle = paste("Labour input of firms' development personnel. Index, 2004 = 100"),
+  caption = "Source: National accounts.")
+save_fig_data(p, "19_tk-panostukset", names_from = "series")
+
+```
+
+## Productivity developments at the level of the business sector and of firms
+
+Productivity developments at the level of the business sector and at the level
+of firms. Percentage points, 1995 = 0. Source: Finnish Productivity Board's own
+calculations.
+
+```{r}
+#| label: fig-tuottavuus-yritystaso
+
+# As in the Word version of the report: text of the size 12 (theme_fpb()'s
+# default), a black zero line and a thin dashed trend line.
+p <- luku5("kuvio19") |>
+  mutate(series = fct_recode(series, "Aggregate level" = "Business sector level")) |>
+  ggplot(aes(time, values, colour = series)) +
+  theme_fpb(base_size = 12) +
+  geom_hline(yintercept = 0, linewidth = 0.3, colour = "black") +
+  geom_line() +
+   geom_smooth(data = \(d) filter(d, series == "Firm level"),
+               method = "lm", se = FALSE,
+               linewidth = 1, linetype = "dashed", key_glyph = "path") +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "20_tuottavuus-yritystaso")
+save_fig_captioned(p, "20_tuottavuus-yritystaso",
+  title = "Productivity developments at the level of the business sector and of firms",
+  subtitle = "Productivity developments at the level of the business sector and at the level of firms. Percentage points, 1995 = 0.",
+  caption = "Source: Finnish Productivity Board's own calculations.")
+save_fig_data(p, "20_tuottavuus-yritystaso", names_from = "series")
+
+```
+
+## Firm level and creative destruction by technology level
+
+Productivity developments by technology level, at the level of firms and through
+creative destruction. Percentage points, 1995 = 0. Source: Finnish Productivity
+Board's own calculations.
+
+```{r}
+#| label: fig-luova-tuho-teknologia
+
+df <- luku5("kuvio20")
+
+span <- max(tapply(df$values, df$panel, \(v) diff(range(v)))) * 1.05
+
+rajat <- df |>
+  group_by(panel, series) |>
+  reframe(time = min(time),
+          values = mean(range(values)) + c(-1, 1) * span / 2)
+
+
+p <- luku5("kuvio20") |>
+  ggplot(aes(time, values, colour = series)) +
+  facet_wrap(~ panel, scales = "free_y") +
+  scale_y_continuous(breaks = scales::breaks_width(10)) +
+  geom_hline(yintercept = 0, linewidth = 0.3) +
+  geom_line() +
+  ggh4x::facetted_pos_scales(
+    y = list(scale_y_continuous(limits = c(-60, 10)),
+             scale_y_continuous(limits = c(0, 70)))
+  )  +
+  # geom_blank(data = rajat) +
+  the_title_blank("xyl") +
+  the_legend_bot() +
+  guides(colour = guide_legend(nrow = 2))
+
+save_fig(p, "21_luova-tuho-teknologia")
+save_fig_captioned(p, "21_luova-tuho-teknologia",
+  title = "Firm level and creative destruction by technology level",
+  subtitle = paste("Productivity developments by technology level, at the level of firms and through",
+                   "creative destruction. Percentage points, 1995 = 0."),
+  caption = "Source: Finnish Productivity Board's own calculations.")
+save_fig_data(p, "21_luova-tuho-teknologia", names_from = c("panel", "series"))
+
+```
+
+The titles of the panels and the legends of the series are from the model
+figures. The panels have the same scale, because both are in the same unit and
+comparing their magnitudes is the point of the figure; the model figures are two
+separate figures with scales of their own.
+
+## The divergence component and the change in dispersion
+
+The effect of the divergence component (left axis) and the change in the
+dispersion of productivity (right axis), observed and HP-filtered series.
+Source: Finnish Productivity Board's own calculations.
+
+```{r}
+#| label: fig-divergenssi-hajonta
+
+# The series of the right axis are drawn on the left axis shrunk to a fifth, and
+# the right axis multiplies them back. This way zero is at the same place on both
+# axes; in the model figure the axes are not aligned at zero.
+k21_oikea <- c("Change in dispersion (right axis)")
+k21_suhde <- 5
+
+p <- luku5("kuvio21") |>
+  separate_wider_delim(series, delim = ", ", names = c("series", "type"),
+                       too_few = "align_start") |>
+  mutate(series = as_factor(series),
+         series = fct_recode(series,
+           "Divergence component (left axis)" = "Divergence component",
+           "Change in dispersion (right axis)" = "Change in dispersion")) |>
+
+  mutate(
+    type = if_else(is.na(type), "Original", "HP-filtered"),
+    type = as_factor(type)) |>
+  mutate(values = if_else(series %in% k21_oikea, values / k21_suhde, values)) |>
+  ggplot(aes(time, values, colour = series, linewidth = type)) +
+  geom_hline(yintercept = 0, linewidth = 0.3) +
+  geom_line() +
+  scale_linewidth_manual(values = c(0.5,2), guide = "none") +
+  scale_y_continuous(
+    breaks = scales::breaks_pretty(n = 10),
+    sec.axis = sec_axis(~ . * k21_suhde, breaks = scales::breaks_pretty(n = 10))
+  ) +
+  the_title_blank("xyl") +
+  the_legend_bot() +
+  # the legends are long, so one column fits the width of the figure
+  guides(colour = guide_legend(ncol = 1))
+
+save_fig(p, "22_divergenssi-hajonta")
+save_fig_captioned(p, "22_divergenssi-hajonta",
+  title = "The divergence component and the change in dispersion",
+  subtitle = paste("The effect of the divergence component (left axis) and the change in the",
+                   "dispersion of productivity (right axis), observed and HP-filtered series."),
+  caption = "Source: Finnish Productivity Board's own calculations.")
+save_fig_data(p, "22_divergenssi-hajonta", names_from = c("series", "type"))
+
+```
+
+The right axis is five times the left one. The series of the change in
+dispersion lack the first year, because they are changes.
+
+# Figures of chapter 6
+
+As those of chapters 3 and 5, the series of chapter 6 come ready calculated from
+the Excel file `data-raw/rap_2026/Luku6.xlsx`, which has one sheet per figure.
+The workbook has been put together from the individual data point files that came
+with the manuscript of chapter 6; the sheet Sisältö (contents) has the titles of
+the figures and the source files. The sheets are read by the script
+`data-raw/read_luku6.R`, which has to be run before this document is rendered.
+
+The model figures are in the manuscript of chapter 6, not in the workbook. From
+them we have taken which series are in the figure, the legends of the series and
+the titles of the panels; the titles and the sources are the captions of the
+manuscript.
+
+## Industry concentration in the EU countries
+
+The development of industry concentration in different EU countries. CR4 share,
+%. Source: based on figures of Anttinen et al. (2026) and Calligaris et al.
+(2024).
+
+```{r}
+#| label: fig-keskittyminen-eu
+
+# Finland and Europe separately, the other countries as one grey group as in the
+# model
+k23_colour <- set_names(c("grey80", ggcustom_pal(2, "fpb")),
+                        c("Other countries", "Finland", "Europe (GDP-weighted)"))
+k23_width <- set_names(c(0.6, 2, 1.3), names(k23_colour))
+
+p <- luku6("kuvio23") |>
+  # the countries are drawn in the order of the series, so that Finland and
+  # Europe come on top of the grey lines
+  mutate(key = fct_reorder(key, as.integer(series))) |>
+  ggplot(aes(time, values, colour = series, linewidth = series, group = key)) +
+  geom_line() +
+  scale_colour_manual(values = k23_colour) +
+  scale_linewidth_manual(values = k23_width) +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "23_keskittyminen-eu")
+save_fig_captioned(p, "23_keskittyminen-eu",
+  title = "Industry concentration in the EU countries",
+  subtitle = "The development of industry concentration in different EU countries. CR4 share, %.",
+  caption = "Source: based on figures of Anttinen et al. (2026) and Calligaris et al. (2024).")
+# key is country specific, series only groups (many countries share the same
+# "Other countries" series), so the widening is done by key
+save_fig_data(p, "23_keskittyminen-eu", names_from = "key")
+
+```
+
+The grey lines are Belgium, Denmark, France, Germany, Greece, Hungary, Italy,
+Norway, Poland, Portugal, Slovenia, Spain, Sweden and the United Kingdom. The
+CR4 share is the share of the four largest firms of an industry, and the figures
+by country are averages calculated over industries.
+
+## Concentration indices of industries in Finland
+
+Concentration indices of industries in Finland in 2014–2024. HHI index and CR4
+share, %. Source: Anttinen et al. (2026).
+
+```{r}
+#| label: fig-keskittymisindeksit
+
+p <- luku6("kuvio24") |>
+  mutate(panel = fct_recode(panel, "CR4, %" = "CR4")) |>
+  ggplot(aes(time, values, linetype = series)) +
+  facet_wrap(~ panel, scales = "free_y") +
+  geom_line() +
+  scale_linetype_manual(values = c(1, 3, 3)) +
+  scale_y_continuous(n.breaks = 8) +
+  expand_limits(y = 0) +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "24_keskittymisindeksit")
+save_fig_captioned(p, "24_keskittymisindeksit",
+  title = "Concentration indices of industries in Finland",
+  subtitle = "Concentration indices of industries in Finland in 2014–2024. HHI index and CR4 share, %.",
+  caption = "Source: Anttinen et al. (2026).")
+save_fig_data(p, "24_keskittymisindeksit", names_from = c("panel", "series"))
+
+```
+
+The scales of the panels are in different units, the HHI in index points and the
+CR4 in per cent, so they have scales of their own. The HHI is the sum of the
+squares of the market shares of the firms of an industry and takes values
+between 0 and 10,000; p25 and p75 are the lower and upper quartile limits of the
+distribution of industries.
+
+## Market entry and exit
+
+The shares of firms that entered and exited the market in Finland in 2014–2024.
+Share of firms, %. Source: Anttinen et al. (2026).
+
+```{r}
+#| label: fig-markkinoille-tulo
+
+p <- luku6("kuvio25") |>
+  ggplot(aes(time, values, colour = series)) +
+  geom_line() +
+  expand_limits(y = c(0, 10)) +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "25_markkinoille-tulo")
+save_fig_captioned(p, "25_markkinoille-tulo",
+  title = "Market entry and exit",
+  subtitle = "The shares of firms that entered and exited the market in Finland in 2014–2024. Share of firms, %.",
+  caption = "Source: Anttinen et al. (2026).")
+save_fig_data(p, "25_markkinoille-tulo", names_from = "series")
+
+```
+
+The last year of exit is 2023, because exit is only known from the data of the
+following year.
+
+## Persistence of the largest firms
+
+The persistence of the market shares of the largest firms in Finland in
+2014–2024. Share of firms, %. Source: Anttinen et al. (2026).
+
+```{r}
+#| label: fig-suurimpien-pysyvyys
+
+p <- luku6("kuvio26") |>
+  ggplot(aes(time, values)) +
+  geom_line() +
+  expand_limits(y = c(65, 80)) +
+  scale_y_continuous(n.breaks = 4) +
+  the_title_blank("xyl")
+
+save_fig(p, "26_suurimpien-pysyvyys")
+save_fig_captioned(p, "26_suurimpien-pysyvyys",
+  title = "Persistence of the largest firms",
+  subtitle = "The persistence of the market shares of the largest firms, share of firms, %",
+  caption = "Source: Anttinen et al. (2026).")
+save_fig_data(p, "26_suurimpien-pysyvyys")
+
+```
+
+## Profit margins
+
+Profit margins in Finland in 2014–2023. Index, 2014 = 100. Source: Anttinen et
+al. (2026).
+
+```{r}
+#| label: fig-voittomarginaalit
+
+p <- luku6("kuvio27") |>
+  ggplot(aes(time, values, linetype = series)) +
+  # geom_hline(yintercept = 100, linewidth = 0.3) +
+  geom_line() +
+  scale_linetype_manual(values = c(1, 3, 3)) +
+  scale_y_continuous(n.breaks = 4) +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "27_voittomarginaalit")
+save_fig_captioned(p, "27_voittomarginaalit",
+  title = "Profit margins",
+  subtitle = "Profit margins in Finland in 2014–2023. Index, 2014 = 100.",
+  caption = "Source: Anttinen et al. (2026).")
+save_fig_data(p, "27_voittomarginaalit", names_from = "series")
+
+```
+
+## The ratio of operating surplus to output
+
+The ratio of operating surplus to output in Finland, the United States and
+Europe in 2000–2024. %, business sector excluding real estate. Source: OECD
+databases.
+
+```{r}
+#| label: fig-toimintaylijaama-tuotos
+
+p <- luku6("kuvio28") |>
+  ggplot(aes(time, values, colour = series)) +
+  geom_line() +
+  scale_y_continuous(n.breaks = 8) +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "28_toimintaylijaama-tuotos")
+save_fig_captioned(p, "28_toimintaylijaama-tuotos",
+  title = "The ratio of operating surplus to output",
+  subtitle = paste("The ratio of operating surplus to output in Finland, the United States and Europe",
+                   "in 2000–2024. %, business sector excluding real estate."),
+  caption = "Source: OECD databases.")
+save_fig_data(p, "28_toimintaylijaama-tuotos", names_from = "series")
+
+```
+
+Europe is Austria, Belgium, the Czech Republic, Denmark, Estonia, Finland,
+France, Germany, Greece, Hungary, Iceland, Ireland, Italy, Latvia, Lithuania,
+Luxembourg, the Netherlands, Norway, Poland, Portugal, Slovakia, Slovenia,
+Spain, Sweden and the United Kingdom. There is no data for the United States for
+the last two years.
+
+## Total factor productivity
+
+The development of total factor productivity (TFP) in Finland in 2014–2024.
+Index, 2014 = 100. Source: Anttinen et al. (2026).
+
+```{r}
+#| label: fig-kokonaistuottavuus
+
+p <- luku6("kuvio29") |>
+  ggplot(aes(time, values, linetype = series)) +
+  geom_hline(yintercept = 100, linewidth = 0.3) +
+  geom_line() +
+  scale_linetype_manual(values = c(1, 3, 3)) +
+  scale_y_continuous(n.breaks = 5) +
+  expand_limits(y = c(90, 110)) +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "29_kokonaistuottavuus")
+save_fig_captioned(p, "29_kokonaistuottavuus",
+  title = "Total factor productivity",
+  subtitle = "The development of total factor productivity (TFP) in Finland in 2014–2024. Index, 2014 = 100.",
+  caption = "Source: Anttinen et al. (2026).")
+save_fig_data(p, "29_kokonaistuottavuus", names_from = "series")
+
+```
+
+## Labour productivity in Finland, the United States and Europe
+
+Labour productivity in Finland, the United States and Europe in 2000–2024.
+Index, 2000 = 100. Source: OECD databases.
+
+```{r}
+#| label: fig-tuottavuus-vertailu
+
+p <- luku6("kuvio30") |>
+  ggplot(aes(time, values, colour = series)) +
+  geom_line() +
+  scale_y_continuous(n.breaks = 8) +
+  the_title_blank("xyl") +
+  the_legend_bot()
+
+save_fig(p, "30_tuottavuus-vertailu")
+save_fig_captioned(p, "30_tuottavuus-vertailu",
+  title = "Labour productivity in Finland, the United States and Europe",
+  subtitle = "Labour productivity in Finland, the United States and Europe in 2000–2024. Index, 2000 = 100.",
+  caption = "Source: OECD databases.")
+save_fig_data(p, "30_tuottavuus-vertailu", names_from = "series")
+
+```
+
+Europe is the same group of 25 countries as in the figure on the ratio of
+operating surplus to output.
+
+## Investment relative to turnover
+
+The ratio of investment to turnover in Finland in 2014–2024. Investment relative
+to turnover, %. Source: Anttinen et al. (2026).
+
+```{r}
+#| label: fig-investoinnit-liikevaihto
+
+p <- luku6("kuvio31") |>
+  ggplot(aes(time, values)) +
+  facet_wrap(~ panel) +
+  geom_line() +
+  expand_limits(y = c(0,10)) +
+  the_title_blank("xyl")
+
+save_fig(p, "31_investoinnit-liikevaihto")
+save_fig_captioned(p, "31_investoinnit-liikevaihto",
+  title = "Investment relative to turnover",
+  subtitle = paste("The ratio of investment to turnover in Finland in 2014–2024. Investment relative",
+                   "to turnover, %."),
+  caption = "Source: Anttinen et al. (2026).")
+save_fig_data(p, "31_investoinnit-liikevaihto", names_from = "panel")
+
+```
+
+The panels have the same scale as in the model figure, because the unit is the
+same.
