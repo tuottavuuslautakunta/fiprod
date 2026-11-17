@@ -57,7 +57,12 @@ library(ggcustom)
 library(pttdatahaku)
 
 
-set_gg(theme_fpb(base_size = 11))
+# The figures are in the style of the Word version of the report: text of the
+# size 12 (the default of theme_fpb()), a black zero line and bars without an
+# outline (the outline of the bars and the thick zero line are the new defaults
+# of ggplot2 4.0 with the theme of the board). The exceptions, figures 11 and
+# 19, are of the size 11 as in the Word version.
+set_gg(theme_fpb(base_size = 12))
 
 y_log_breaks <- scales::breaks_pretty(n = 8)
 
@@ -94,7 +99,6 @@ geos <- rev(c(
   "Sweden"        = "SE",
   "Denmark"       = "DK",
   "Germany"       = "DE",
-  "France"        = "FR",
   "USA"           = "US",
   "other"         = "Other"
 ))
@@ -104,6 +108,23 @@ geos_colour <- set_names(c("grey80", rev(ggcustom_pal(length(geos) -1, "fpb"))),
 
 
 # geos_name <- set_names(names(geos), geos)
+
+# The countries of the public sector figures 12 and 13, which in the Word
+# version of the report also have the United Kingdom and France
+geos_pub <- rev(c(
+  "Finland"       = "FI",
+  "Euro area"     = "EA20",
+  "Sweden"        = "SE",
+  "Denmark"       = "DK",
+  "Germany"       = "DE",
+  "USA"           = "US",
+  "UK"            = "UK",
+  "France"        = "FR",
+  "other"         = "Other"
+))
+
+geos_pub_width <- set_names(if_else(geos_pub %in% c("FI"), 2, 1.3), names(geos_pub))
+geos_pub_colour <- set_names(c("grey80", rev(ggcustom_pal(length(geos_pub) -1, "fpb"))), names(geos_pub))
 
 # Cost competitiveness
 
@@ -135,7 +156,7 @@ sub_ind <- paste0("Index, average ", min(mean_range), "–", max(mean_range), " 
 # Period of the public sector comparison: the average growth rates are taken
 # over these years
 public_period <- 1998:2023
-public_period_lab <- paste0(min(public_period), "–", max(public_period))
+public_period_lab <- paste0(min(public_period), "-", max(public_period))
 
 # Figures of chapters 3, 4.2, 5 and 6
 #
@@ -345,7 +366,7 @@ pdat <- dat_gdp_main |>
     time = time,
     geo = geo,
     "GDP per hour worked, $" = 1000 * GDP / HRS,
-    "Hours worked per capita, h" = HRS / POP,
+    "Hours per capita, h" = HRS / POP,
     .keep = "none") |>
   pivot_longer(!c("time", "geo"), names_to = "measure", values_to = "values")
 
@@ -540,13 +561,6 @@ Board.
 ```{r}
 #| label: fig-tuottavuustaso-palvelut
 
-# The figure as it is in the Word version of the report: France is left out, so
-# the countries and their colours are those of geos_s1, and the text is of the
-# size 12 (theme_fpb()'s default) instead of the 11 of the rest of the figures.
-geos_s1 <- geos[geos != "FR"]
-geos_s1_width <- set_names(if_else(geos_s1 %in% c("FI"), 2, 1.3), names(geos_s1))
-geos_s1_colour <- set_names(c("grey80", rev(ggcustom_pal(length(geos_s1) - 1, "fpb"))), names(geos_s1))
-
 p <- dat_gva_ind_comb |> 
   filter(time >= "1995-01-01") |> 
   filter_recode(
@@ -556,14 +570,13 @@ p <- dat_gva_ind_comb |>
   ) |> 
   # mutate(values = rebase(values, time, baseyear = 2007), .by = where(is.factor)) |> 
   filter_recode(
-    geo = geos_s1
+    geo = geos
   ) |> 
   ggplot(aes(time, values, colour = geo, linewidth = geo)) +
-  theme_fpb(base_size = 12) +
   scale_y_log10(limits = c(50, 150), breaks = y_log_breaks) +
   geom_line() +
-  scale_colour_manual(values = geos_s1_colour) +
-  scale_linewidth_manual(values = geos_s1_width) +
+  scale_colour_manual(values = geos_colour) +
+  scale_linewidth_manual(values = geos_width) +
   scale_y_log10(breaks = y_log_breaks) +
   guides(colour = guide_legend(reverse = TRUE), linewidth = guide_legend(reverse = TRUE)) +
   the_title_blank("xyl") 
@@ -592,7 +605,7 @@ p <- pick(c("Nominal, national currency" = "nulc_aper",
             "Nominal, terms of trade adjusted" = "nulc_aper_eur_atot",
             "Real" = "rulc_aper")) |>
   ggplot(aes(time, values, colour = vars)) +
-  geom_hline(yintercept = 100, linewidth = 0.3) +
+  geom_hline(yintercept = 100, linewidth = 0.3, colour = "black") +
   geom_line() +
   the_title_blank("xl") +
   the_legend_bot() +
@@ -628,7 +641,7 @@ p <- pick(c("Productivity" = "lp_ind",
             "Exchange rate" = "exch_eur_ind")) |>
   mutate(values = if_else(vars == "Exchange rate", 100^2 / values, values)) |>
   ggplot(aes(time, values, colour = vars)) +
-  geom_hline(yintercept = 100, linewidth = 0.3) +
+  geom_hline(yintercept = 100, linewidth = 0.3, colour = "black") +
   geom_line() +
   the_title_blank("xl") +
   the_legend_bot() +
@@ -755,7 +768,7 @@ industry in 2000–2022. Ratio. Source: own calculations.
 
 p <- luku3("kuvio3") |>
   ggplot(aes(values, key)) +
-  geom_col() +
+  geom_col(colour = NA) +
   expand_limits(x = 1) +
   theme(axis.text.y = element_text(size = 9)) +
   the_title_blank("xyl")
@@ -791,13 +804,24 @@ pdat <- luku3("kuvio4") |>
   mutate(series = stringr::str_wrap(series, 50))
 
 lvl <- levels(as_factor(pdat$series))      # all 6 levels, k4_yht last
+
+# The order of the bars in a stack. In the Finnish version ggplot2 stacks the
+# series in the alphabetical order of their Finnish names, so the order of the
+# English names is set to be the same, to keep the stacks the same.
+stack_order <- c("Genuine entry and exit",
+                 "Continuing firms, no restructuring",
+                 "Labour reallocation",
+                 "Entry and exit related to restructuring",
+                 "Continuing firms that made acquisitions",
+                 k4_yht)
+pdat <- mutate(pdat, series = factor(series, levels = stack_order))
 pal <- c(fpb_pal(5), NA)          # or: c(scales::hue_pal()(5), NA)
 
 p <- pdat |>
   filter(series != k4_yht) |>
   ggplot(aes(key, values, fill = series)) +
-  geom_hline(yintercept = 0, linewidth = 0.3) +
-  geom_col() +
+  geom_hline(yintercept = 0, linewidth = 0.3, colour = "black") +
+  geom_col(colour = NA) +
   geom_point(data = filter(pdat, series == k4_yht),
              aes(key, values, colour = series), shape = 16,
              inherit.aes = FALSE) +
@@ -827,8 +851,8 @@ pal <- c(fpb_pal(5), NA)          # or: c(scales::hue_pal()(5), NA)
 p <- pdat |>
   filter(series != k4_yht) |>
   ggplot(aes(key, values, fill = series)) +
-  geom_hline(yintercept = 0, linewidth = 0.3) +
-  geom_col() +
+  geom_hline(yintercept = 0, linewidth = 0.3, colour = "black") +
+  geom_col(colour = NA) +
   geom_point(data = filter(pdat, series == k4_yht),
              aes(key, values, colour = series), shape = 16,
              inherit.aes = FALSE) +
@@ -855,7 +879,8 @@ service industries. Share of firms, %. Source: own calculations.
 
 p <- luku3("kuvio11") |>
   ggplot(aes(key, values, fill = series)) +
-  geom_col(position = "dodge", width = 0.7) +
+  theme_fpb(base_size = 11) +
+  geom_col(position = "dodge", width = 0.7, colour = NA) +
   the_title_blank("xyl") +
   the_legend_bot() +
   guides(fill = guide_legend(nrow = 4)) +
@@ -900,26 +925,33 @@ Finnish Productivity Board.
 #| label: fig-tuottavuus-julkinen
 
 
+# As in the Word version of the report, the figure has the United Kingdom and
+# France as well, a title, a subtitle and a source inside the figure, and the
+# size is the one of a figure of the html version (20 x 12.3 cm, 875 x 540 px).
 p <- dat_gva_ind_comb |>
-  filter(time >= "1980-01-01") |>
   filter_recode(
     measure = c("GVAHRS"),
     activity = c("Public sector" = "OTQ"),
     vars = c("fp_2020_ppp17")
-  ) |>
-  mutate(values = rebase(values, time, baseyear = 2000), .by = where(is.factor)) |>
+  ) |> 
+  mutate(values = rebase(values, time, baseyear = 2000), .by = where(is.factor)) |> 
   filter(geo != "DK") |>
   filter_recode(
-    geo = geos
-  ) |>
+    geo = geos_pub
+  ) |> 
   ggplot(aes(time, values, colour = geo, linewidth = geo)) +
   geom_line() +
-  scale_colour_manual(values = geos_colour) +
-  scale_linewidth_manual(values = geos_width) +
+  scale_colour_manual(values = geos_pub_colour) +
+  scale_linewidth_manual(values = geos_pub_width) +
   guides(colour = guide_legend(reverse = TRUE), linewidth = guide_legend(reverse = TRUE)) +
-  the_title_blank("xyl")
+  the_title_blank("xyl") +
+  labs(
+    title = "Labour productivity, value added / hours worked",
+    subtitle = "Index, 2000 = 100",
+    caption = "Source: OECD, Finnish Productivity Board"
+  )
 
-save_fig(p, "12_tuottavuus-julkinen")
+save_fig(p, "12_tuottavuus-julkinen", width = 20, height = 12.34, dpi = 111)
 save_fig_captioned(p, "12_tuottavuus-julkinen",
   title = "Productivity in the public sector",
   subtitle = paste("Labour productivity in the public sector, value added per hour worked in 2020 $,",
@@ -978,33 +1010,40 @@ pdat <- dat_gva_ind_comb |>
   pivot_longer(cols = where(is.numeric), names_to = c("measure", "vars"), names_sep = "__",
                values_to = "values", names_transform = as_factor)
 
-p <- pdat |>
+# As in the Word version of the report, the figure has the United Kingdom as
+# well, the period as the title of the panel, and the size is the one of a
+# figure of the html version (20 x 12.3 cm, 875 x 540 px).
+p <- pdat |> 
   filter_recode(
     measure = "GVAHRS",
     vars = "fp_2020_lc",
-    geo = geos
-  ) |>
-  mutate(values = pc(values, 1, time), .by = c(geo, activity)) |>
-  pivot_wider(names_from = activity, values_from = values) |>
-  mutate(diff = TOT - TOTex) |>
+    geo = geos_pub
+  ) |> 
+  mutate(values = pc(values, 1, time), .by = c(geo, activity)) |> 
+  pivot_wider(names_from = activity, values_from = values) |> 
+  mutate(diff = TOT - TOTex) |> 
   pivot_longer(cols = where(is.numeric), names_to = "activity", values_to = "values",
-               names_transform = as_factor) |>
+               names_transform = as_factor) |> 
   filter_recode(
     activity =
       c("Total economy" = "TOT",
         "Public sector" = "OTQ",
         "Excluding public sector" = "TOTex",
         "Difference" = "diff")
-  ) |>
-  filter(year(time) %in% public_period) |>
-  summarise(values = mean(values), .by = c(geo, activity)) |>
-  mutate(geo = fct_reorder(geo, values, .fun = max)) |>
+  ) |> 
+  mutate(period = case_when(
+    year(time) %in% public_period ~ public_period_lab
+  )) |> 
+  filter(!is.na(period)) |> 
+  summarise(values = mean(values), .by = c(geo, period, activity)) |> 
+  mutate(geo = fct_reorder(geo, values, .fun = max)) |> 
   ggplot(aes(geo, values, fill = activity)) +
-  geom_col(position = "dodge") +
-  scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
-  the_title_blank("xyl")
+  facet_wrap(~period, ncol = 1) +
+  geom_col(position = "dodge", colour = NA) +
+  the_title_blank("xtl") +
+  labs(title = "Average growth of labour productivity, %")
 
-save_fig(p, "13_tuottavuuskasvu-julkinen")
+save_fig(p, "13_tuottavuuskasvu-julkinen", width = 20, height = 12.34, dpi = 111)
 save_fig_captioned(p, "13_tuottavuuskasvu-julkinen",
   title = "Productivity growth with and without the public sector",
   subtitle = paste0(
@@ -1046,7 +1085,7 @@ sheet.
 # stack is turned round: ggplot2 stacks the first level on top by default
 p <- luku4_2("kuvio14") |>
   ggplot(aes(time, values, fill = series)) +
-  geom_col(position = position_stack(reverse = TRUE)) +
+  geom_col(position = position_stack(reverse = TRUE), colour = NA) +
   the_title_blank("xyl") +
   the_legend_bot()
 
@@ -1072,7 +1111,7 @@ New pensions by type of pension in 2025–2044. Cumulative number. Source: Keva
 
 p <- luku4_2("kuvio15") |>
   ggplot(aes(time, values, fill = series)) +
-  geom_col(position = position_stack(reverse = TRUE)) +
+  geom_col(position = position_stack(reverse = TRUE), colour = NA) +
   scale_y_continuous(labels = scales::label_number(big.mark = ",")) +
   the_title_blank("xyl") +
   the_legend_bot() +
@@ -1108,13 +1147,13 @@ p <- luku4_2("kuvio16") |>
   mutate(values = values / 1000) |>
   mutate(vars = fct_rev(as_factor(series))) %>%{
   ggplot(droplevels(filter(., !(vars %in% lines))), aes(time, values, fill = vars)) +
-  geom_area() +
+  geom_area(colour = NA) +
   geom_line(data = (filter(., vars %in% lines)), aes(time, values, colour = vars, fill = NULL)) +
   the_title_blank("xyl") +
       the_legend_bot() +
   scale_colour_manual(values = rev(c("grey25", "grey50", "grey75"))) +
-  geom_hline(yintercept = 0) +
-      guides(fill = guide_legend(override.aes = list(colour = NA), nrow = 3), colour = guide_legend(nrow = 3)) +
+  geom_hline(yintercept = 0, linewidth = 0.5, colour = "black") +
+      guides(fill = guide_legend(override.aes = list(colour = NA), nrow = 3, order = 1), colour = guide_legend(nrow = 3, order = 2)) +
       theme(panel.grid.major.x = element_blank())}
 
 save_fig(p, "16_inhimillinen-paaomakanta")
@@ -1187,7 +1226,7 @@ database.
 
 p <- luku5("kuvio17") |>
   ggplot(aes(time, values, colour = series)) +
-  geom_hline(yintercept = 100, linewidth = 0.3) +
+  geom_hline(yintercept = 100, linewidth = 0.3, colour = "black") +
   geom_line() +
   the_title_blank("xyl") +
   guides(colour = guide_legend(nrow = 2)) +
@@ -1215,7 +1254,8 @@ accounts.
 
 p <- luku5("kuvio18") |>
   ggplot(aes(time, values, colour = series)) +
-  geom_hline(yintercept = 100, linewidth = 0.3) +
+  theme_fpb(base_size = 11) +
+  geom_hline(yintercept = 100, linewidth = 0.3, colour = "black") +
   geom_line() +
   scale_y_continuous(n.breaks = 8) +
   the_title_blank("xyl") +
@@ -1239,12 +1279,10 @@ calculations.
 ```{r}
 #| label: fig-tuottavuus-yritystaso
 
-# As in the Word version of the report: text of the size 12 (theme_fpb()'s
-# default), a black zero line and a thin dashed trend line.
+# The trend line is thin and dashed as in the Word version of the report
 p <- luku5("kuvio19") |>
   mutate(series = fct_recode(series, "Aggregate level" = "Business sector level")) |>
   ggplot(aes(time, values, colour = series)) +
-  theme_fpb(base_size = 12) +
   geom_hline(yintercept = 0, linewidth = 0.3, colour = "black") +
   geom_line() +
    geom_smooth(data = \(d) filter(d, series == "Firm level"),
@@ -1285,7 +1323,7 @@ p <- luku5("kuvio20") |>
   ggplot(aes(time, values, colour = series)) +
   facet_wrap(~ panel, scales = "free_y") +
   scale_y_continuous(breaks = scales::breaks_width(10)) +
-  geom_hline(yintercept = 0, linewidth = 0.3) +
+  geom_hline(yintercept = 0, linewidth = 0.3, colour = "black") +
   geom_line() +
   ggh4x::facetted_pos_scales(
     y = list(scale_y_continuous(limits = c(-60, 10)),
@@ -1339,7 +1377,7 @@ p <- luku5("kuvio21") |>
     type = as_factor(type)) |>
   mutate(values = if_else(series %in% k21_oikea, values / k21_suhde, values)) |>
   ggplot(aes(time, values, colour = series, linewidth = type)) +
-  geom_hline(yintercept = 0, linewidth = 0.3) +
+  geom_hline(yintercept = 0, linewidth = 0.3, colour = "black") +
   geom_line() +
   scale_linewidth_manual(values = c(0.5,2), guide = "none") +
   scale_y_continuous(
@@ -1515,7 +1553,7 @@ al. (2026).
 
 p <- luku6("kuvio27") |>
   ggplot(aes(time, values, linetype = series)) +
-  # geom_hline(yintercept = 100, linewidth = 0.3) +
+  # geom_hline(yintercept = 100, linewidth = 0.3, colour = "black") +
   geom_line() +
   scale_linetype_manual(values = c(1, 3, 3)) +
   scale_y_continuous(n.breaks = 4) +
@@ -1573,7 +1611,7 @@ Index, 2014 = 100. Source: Anttinen et al. (2026).
 
 p <- luku6("kuvio29") |>
   ggplot(aes(time, values, linetype = series)) +
-  geom_hline(yintercept = 100, linewidth = 0.3) +
+  geom_hline(yintercept = 100, linewidth = 0.3, colour = "black") +
   geom_line() +
   scale_linetype_manual(values = c(1, 3, 3)) +
   scale_y_continuous(n.breaks = 5) +
